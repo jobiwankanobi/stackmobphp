@@ -1,6 +1,13 @@
-# Sparse
+# Stackmob
 
-Simple synchronous php library for [parse.com](http://parse.com).
+Simple synchronous php library for [stackmob.com](http://stackmob.com).
+
+I need this for a stackmob project, and have only begun to change the basic
+functionality to work with stackmob instead of parse.  Feel free to contribute
+if you are in need of the other pieces of the puzzle like "Push notifications",
+etc.  I will update the documentation when this project is farther along.
+
+Based on the project this is forked from: https://github.com/spacious/sparse
 
 Modeled after the [Parse Javascript SDK API](https://parse.com/docs/js/).
 
@@ -20,59 +27,60 @@ _Mostly complete_*, exceptions noted below.
 
 __Not currently implemented:__
 
-* Relations
-* ACL
 * Op
 * Collections
 * GeoPoint (Locations)
 * Roles
 * Facebook Users
+* Push messages
 
 ## Setup
 
 The only setup is to give the rest client class (Rest.php) your parse credentials:
 
-This can be done anywhere or for portability just in Sparse.php like so:
+This can be done anywhere or for portability just in Stackmob.php like so:
 
 ````php
     // Your credentials:
-    Rest::$applicationId = "QWERTYUIOPASDFGHJKLZXCVBNM1234567890";
-    Rest::$restAPIKey = "QWERTYUIOPASDFGHJKLZXCVBNM1234567890";
+    Rest::$consumerKey = "QWERTYUIOPASDFGHJKLZXCVBNM1234567890";
+    Rest::$consumerSecret = "QWERTYUIOPASDFGHJKLZXCVBNM1234567890";
+    Rest::$VERSION = 0;	// replace or override with 1 for production
 ````
-If done outside a Sparse namespaced file, you'll need the namespace:
+If done outside a Stackmob namespaced file, you'll need the namespace:
 
 ````php
     // Your credentials:
-    \Sparse\Rest::$applicationId = "QWERTYUIOPASDFGHJKLZXCVBNM1234567890";
-    \Sparse\Rest::$restAPIKey = "QWERTYUIOPASDFGHJKLZXCVBNM1234567890";
+    \Stackmob\Rest::$consumerKey = "QWERTYUIOPASDFGHJKLZXCVBNM1234567890";
+    \Stackmob\Rest::$restAPIKey = "QWERTYUIOPASDFGHJKLZXCVBNM1234567890";
+    \Stackmob\Rest::$VERSION = 0;	// replace or override with 1 for production
 ````
 
 ## Simple usage
 
-The simplest way to use the library is just use Rest.php. It provides methods to get, post and put using the Parse REST
-API. Shortcut methods are also provided for Objects, Users, etc.
+The simplest way to use the library is just use Rest.php. It provides methods to get, post and put using the Stackmob REST
+API. (https://developer.stackmob.com/sdks/rest/api#a-rest_docs) Shortcut methods are also provided for Objects, Users, etc.
 
 The remaining classes are meant to provide a more declaritive way to work with Objects and Queries.
 
-We'll try to also mimic parse's documentation structure and note APIs which have not been implemented.
+We'll try to also mimic stackmob's documentation structure and note APIs which have not been implemented.
 
 ## Objects
 
-### Sparse\\Object
+### Stackmob\\Object
 
-With Sparse it's usually easier to just use Object directly without subclassing it, like:
+With Stackmob it's usually easier to just use Object directly without subclassing it, like:
 
 ````php
-    $gameScore = new Sparse\Object('GameScore');
+    $gameScore = new Stackmob\Object('GameScore');
     // or create with data (associative array of attributes)
     $data = array('score'=>1337,'playerName'=>"Sean Plott",'cheatMode'=>false);
-    $gameScore = new Sparse\Object('GameScore', $data);
+    $gameScore = new Stackmob\Object('GameScore', $data);
 ````
 
 If you use the object a lot or need custom methods you can extend as so:
 
 ````php
-    class Monster extends Sparse\Object {
+    class Monster extends Stackmob\Object {
 
         public function __construct($attributes=array()){
 
@@ -97,16 +105,16 @@ If you use the object a lot or need custom methods you can extend as so:
     }
 ````
 
-Sparse\\User is also an example of an Object subclass.
+Stackmob\\User is also an example of an Object subclass.
 
 ### Saving Objects
 
 ````php
-    $gameScore = new Sparse\Object('GameScore');
+    $gameScore = new Stackmob\Object('GameScore');
     $gameScore->set("score", 1337);
     $gameScore->set("playerName", "Sean Plott");
     $gameScore->set("cheatMode", false);
-    // Note Sparse object getters/setters are overloaded so this is also possible:
+    // Note Stackmob object getters/setters are overloaded so this is also possible:
     //$gameScore->score = 1337;
     //$gameScore->playerName = "Sean Plott";
     //$gameScore->cheatMode = false;
@@ -128,14 +136,14 @@ Sparse\\User is also an example of an Object subclass.
 Your object will now have the following properties:
 
 ````php
-    echo('objectId: '.$gameScore->objectId."<br />");
-    echo('createdAt: '.$gameScore->createdAt."<br />");
+    echo('objectId: '.$gameScore->id()."<br />");
+    echo('createdAt: '.$gameScore->createdate."<br />");
 ````
 
 Just like the JS API, you can set your properties on save() as well:
 
 ````php
-    $gameScore = new Sparse\Object('GameScore');
+    $gameScore = new Stackmob\Object('GameScore');
     $data = array('score'=>1337,'playerName'=>"Sean Plott",'cheatMode'=>false);
     $gameScore->save($data);
 ````
@@ -145,7 +153,7 @@ Just like the JS API, you can set your properties on save() as well:
 ````php
     // Using a Query
 
-    $query = new \Sparse\Query('GameScore');
+    $query = new \Stackmob\Query('GameScore');
     $gameScore = $query->get('fc0Gy7fdf1');
 
     if($gameScore){
@@ -154,27 +162,27 @@ Just like the JS API, you can set your properties on save() as well:
         echo('</pre>');
 
         // Your object will have the following properties:
-        echo('objectId: '.$gameScore->objectId."<br />");
-        echo('createdAt: '.$gameScore->createdAt."<br />");
-        echo('updatedAt: '.$gameScore->updatedAt."<br />");
+        echo('objectId: '.$gameScore->id()."<br />");
+        echo('createdAt: '.$gameScore->createdate."<br />");
+        echo('updatedAt: '.$gameScore->updateddate."<br />");
     }
 
     // Using fetch:
 
-    $gameScore = new Sparse\Object('GameScore');
+    $gameScore = new Stackmob\Object('GameScore');
     $gameScore->id('fc0Gy7fdf1');
     $gameScore->fetch();
 
     // Your object will have the following properties:
-    echo('objectId: '.$gameScore->objectId."<br />");
-    echo('createdAt: '.$gameScore->createdAt."<br />");
-    echo('updatedAt: '.$gameScore->updatedAt."<br />");
+    echo('objectId: '.$gameScore->id()."<br />");
+    echo('createdAt: '.$gameScore->createdate."<br />");
+    echo('updatedAt: '.$gameScore->updateddate."<br />");
 ````
 
 ### Updating Objects
 
 ````php
-    $gameScore = new Sparse\Object('GameScore');
+    $gameScore = new Stackmob\Object('GameScore');
     $gameScore->set("score", 1337);
     $gameScore->set("playerName", "Sean Plott");
     $gameScore->set("cheatMode", false);
@@ -191,6 +199,7 @@ Just like the JS API, you can set your properties on save() as well:
 ````
 
 #### Counters
+Not yet implemented
 
 ````php
     $gameScore->increment('score');
@@ -198,6 +207,7 @@ Just like the JS API, you can set your properties on save() as well:
 ````
 
 #### Arrays
+Not yet implemented
 
 ````php
     $gameScore->addUnique("skills", "flying");
@@ -207,6 +217,7 @@ Just like the JS API, you can set your properties on save() as well:
 ````
 
 ### Destroying Objects
+Not yet implemented
 
 ````php
     $gameScore->destroy();
@@ -217,6 +228,7 @@ Just like the JS API, you can set your properties on save() as well:
 ````
 
 Delete a single field...
+Not yet implemented
 
 __NOTE:__ Changed from unset() to unsetAttr() (unset is reserved in PHP)
 
@@ -226,10 +238,12 @@ __NOTE:__ Changed from unset() to unsetAttr() (unset is reserved in PHP)
 ````
 
 ### Relational Data
+Partially implemented - php  code is different.
+Will update...
 
 ````php
-    $post = new \Sparse\Object('Post');
-    $comment = new \Sparse\Object('Comment');
+    $post = new \Stackmob\Object('Post');
+    $comment = new \Stackmob\Object('Comment');
 
     $post->title = "I'm Hungry";
     $post->content = "Where should we go for lunch?";
@@ -241,13 +255,13 @@ __NOTE:__ Changed from unset() to unsetAttr() (unset is reserved in PHP)
 
     // or with id:
 
-    $post = new \Sparse\Object('Post');
+    $post = new \Stackmob\Object('Post');
     $post->id = '0HETDIVfuq';
     $comment->set('parent',$post);*/
 
     // Fetching related data
 
-    $comment = new \Sparse\Object('Comment');
+    $comment = new \Stackmob\Object('Comment');
     $comment->id('T0z3RIgdqD');
     $comment->fetch();
 
@@ -277,7 +291,7 @@ These are stubbed in but are no-ops:
 * relation
 * setACL
 
-### Extra Objects methods provided by Sparse:
+### Extra Objects methods provided by Stackmob:
 
 Extra public API provided to API:
 
@@ -286,7 +300,7 @@ Get/Set all the attributes of an Object:
 __NOTE:__ Setting all the attributes directly does not set any as 'dirty'.
 
 ````php
-    $gameScore = new Sparse\Object('GameScore');
+    $gameScore = new Stackmob\Object('GameScore');
     $data = array('score'=>1337,'playerName'=>"Sean Plott",'cheatMode'=>false);
     $gameScore->attributes($data);
 
@@ -314,12 +328,17 @@ Create a 'pointer' representation of this Object:
 
 ## Queries
 
-### Sparse\\Query
+### Stackmob\\Query
 
 ### Basic Queries
 
+Queries are simpler in stackmob and based on object,
+so I don't have a separate class.
+Will update documentation.
+
+
 ````php
-    $query = new \Sparse\Query('GameScore');
+    $query = new \Stackmob\Query('GameScore');
     $query->equalTo('playerName','Dan Stemkoski');
     $gameScores = $query->find();
 
@@ -339,7 +358,7 @@ Create a 'pointer' representation of this Object:
     $query->limit(10);
 
     // First
-    $query = new \Sparse\Query('GameScore');
+    $query = new \Stackmob\Query('GameScore');
     $query->equalTo("playerEmail", "dstemkoski@example.com");
     $gameScore = $query->first();
 
@@ -399,22 +418,22 @@ __NOTE:__ Not tested!
 ### Queries on String Values
 
 ````php
-    $query = new \Sparse\Query("BarbecueSauce");
+    $query = new \Stackmob\Query("BarbecueSauce");
     $query->matches("name", '/^[A-Z][0-9]/');
     $sauces = $query->find();
 
     // PCRE modifiers
-    $query = new \Sparse\Query("BarbecueSauce");
+    $query = new \Stackmob\Query("BarbecueSauce");
     $query->matches("description", "bbq", "im");
     $sauces = $query->find();
 
-    $query = new \Sparse\Query("BarbecueSauce");
+    $query = new \Stackmob\Query("BarbecueSauce");
     $query->contains("name", "Extra Spicy!");
 
-    $query = new \Sparse\Query("BarbecueSauce");
+    $query = new \Stackmob\Query("BarbecueSauce");
     $query->startsWith("name", "Big Daddy's");
 
-    $query = new \Sparse\Query("BarbecueSauce");
+    $query = new \Stackmob\Query("BarbecueSauce");
     $query->endsWith("Original Recipe");
 ````
 
@@ -422,21 +441,21 @@ __NOTE:__ Not tested!
 
 ````php
     // equal to existing object:
-    $post = new \Sparse\Object('Post');
+    $post = new \Stackmob\Object('Post');
     $post->id = '0HETDIVfuq';
-    $query = new \Sparse\Query('Comment');
+    $query = new \Stackmob\Query('Comment');
     $query->equalTo("parent", $post);
     $comments = $query->find();
 
     // equal to result of a query:
-    $innerQuery = new \Sparse\Query('Post');
+    $innerQuery = new \Stackmob\Query('Post');
     $innerQuery->exists("image");
-    $query = new \Sparse\Query('Comment');
+    $query = new \Stackmob\Query('Comment');
     $query->matchesQuery("post", $innerQuery);
     $comments = $query->find();
 
     // include related objects:
-    $query = new \Sparse\Query('Comment');
+    $query = new \Stackmob\Query('Comment');
 
     // Retrieve the most recent ones
     $query->descending("createdAt");
@@ -462,7 +481,7 @@ __NOTE:__ Not tested!
 ### Counting Objects
 
 ````php
-    $query = new \Sparse\Query('GameScore');
+    $query = new \Stackmob\Query('GameScore');
     $query->equalTo('playerName',"Sean Plott");
     $count = $query->count();
 
@@ -472,13 +491,13 @@ __NOTE:__ Not tested!
 ### Compound Queries
 
 ````php
-    $lotsOfWins = new \Sparse\Query("Player");
+    $lotsOfWins = new \Stackmob\Query("Player");
     $lotsOfWins->greaterThan("wins",150);
 
-    $fewWins = new \Sparse\Query("Player");
+    $fewWins = new \Stackmob\Query("Player");
     $fewWins->lessThan("wins",5);
 
-    $mainQuery = \Sparse\Query::queryWithOrQueries(array($lotsOfWins,$fewWins));
+    $mainQuery = \Stackmob\Query::queryWithOrQueries(array($lotsOfWins,$fewWins));
     $results = $mainQuery->find();
 ````
 
@@ -503,7 +522,7 @@ These are stubbed in but are no-ops:
 * withinMiles
 * withinRadians
 
-### Extra Objects methods provided by Sparse:
+### Extra Objects methods provided by Stackmob:
 
 Sets the seldom used 'arrayKey'
 
@@ -532,7 +551,7 @@ __NOTE:__ Collections NOT yet implemented
 ### Signing up
 
 ````php
-    $user = new Sparse\User;
+    $user = new Stackmob\User;
     $user->set("username", "my name");
     $user->set("password", "my pass");
     $user->set("email", "email@example.com");
@@ -544,7 +563,7 @@ __NOTE:__ Collections NOT yet implemented
 
     // or
 
-    $user = Sparse\User::signUpUser("my name","my pass",array('email'=>"email@example.com"));
+    $user = Stackmob\User::signUpUser("my name","my pass",array('email'=>"email@example.com"));
 ````
 
 ### Logging In
@@ -552,34 +571,34 @@ __NOTE:__ Collections NOT yet implemented
 The JS API uses a static login method, right now we have an instance method.
 
 ````php
-    $user = new Sparse\User;
+    $user = new Stackmob\User;
     $user->set("username", "my name");
     $user->set("password", "my pass");
     $user->login();
 
     // or just use the rest class
-    $restClient = new Sparse\Rest();
+    $restClient = new Stackmob\Rest();
     $loggedIn = $restClient->login($username,$password);
 ````
 
 ### Current User
 
 ````php
-    $currentUser = Sparse\User::current();
+    $currentUser = Stackmob\User::current();
     if ($currentUser) {
         // do stuff with the user
     } else {
         // show the signup or login page
     }
 
-    Sparse\User::logOut();
-    $currentUser = Sparse\User::current(); // this will now be null
+    Stackmob\User::logOut();
+    $currentUser = Stackmob\User::current(); // this will now be null
 ````
 
 ### Resetting Passwords
 
 ````php
-    Sparse\User::requestPasswordReset("email@example.com");
+    Stackmob\User::requestPasswordReset("email@example.com");
 ````
 
 ## Roles
@@ -600,7 +619,7 @@ All the options available for Push via the REST API are supported.
 
 ````php
     // Super simple example
-    Sparse\Push::send(array(
+    Stackmob\Push::send(array(
         'channels' => array('channel1','channel2'),
         'data' => array('message'=>'blah')
     ));
@@ -609,5 +628,5 @@ All the options available for Push via the REST API are supported.
 ## Cloud
 
 ````php
-    Sparse\Cloud::run('testMethod',array('someParam'));
+    Stackmob\Cloud::run('testMethod',array('someParam'));
 ````
