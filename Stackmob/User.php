@@ -2,7 +2,7 @@
 /**
  * User
  */
-namespace Sparse;
+namespace Stackmob;
 
 class User extends Object {
 
@@ -22,8 +22,8 @@ class User extends Object {
             return User::$_current;
         }else{
             session_start();
-            if(!empty($_SESSION['parse-session-token']) && !empty($_SESSION['sparse-user'])){
-                $attributes = json_decode($_SESSION['sparse-user']);
+            if(!empty($_SESSION['stackmob-session-token']) && !empty($_SESSION['stackmob-user'])){
+                $attributes = json_decode($_SESSION['stackmob-user']);
                 User::$_current = new User($attributes);
                 return User::$_current;
             }else{
@@ -79,7 +79,7 @@ class User extends Object {
      * Required User parameters
      * @var array
      */
-    protected $parseRequiredAttributes = array('username','password');
+    protected $smRequiredAttributes = array('username','password');
 
     /**
      * Creates a new User model
@@ -88,7 +88,7 @@ class User extends Object {
      */
     public function __construct($attributes=array()){
 
-        parent::__construct('User',$attributes);
+        parent::__construct('User',$attributes, 'username');
     }
 
     // API /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -141,8 +141,8 @@ class User extends Object {
                 $this->unsetAttr('password');
 
                 session_start();
-                $_SESSION['parse-session-token'] = $this->sessionToken;
-                $_SESSION['sparse-user'] = $this->toJSON();
+                $_SESSION['stackmob-session-token'] = $this->sessionToken;
+                $_SESSION['stackmob-user'] = $this->toJSON();
 
                 User::$_current = $this;
             }
