@@ -3,20 +3,20 @@
  * Sparse REST Client for Parse.com
  * @version 0.1
  */
-namespace Sparse;
+namespace Stackmob;
+include_once("OAuth.php");
 
 class Rest {
 
-    public static $applicationId;
-    public static $restAPIKey;
-
-    const API_URL = 'https://api.parse.com/1/';
-    const USER_AGENT = 'SparseRest/0.1';
-    const OBJECT_PATH_PREFIX = 'classes';
-    const USER_PATH = 'users';
-    const PASSWORD_RESET_PATH = 'requestPasswordReset';
+    public static $consumerKey;
+    public static $consumerSecret;
+	public static $VERSION = 0; 	// default development, 1 is production
+    const API_URL = 'https://api.stackmob.com';
+    const USER_AGENT = 'StackmobRest/0.1';
+    const OBJECT_PATH_PREFIX = '';
+    const PUSH_PATH = 'https://push.stackmob.com';
+    const USER_PATH = 'user';
     const LOGIN_PATH = 'login';
-    const PUSH_PATH = 'push';
 
     public $timeout = 5;
     public $sessionToken;
@@ -28,14 +28,20 @@ class Rest {
     protected $_errorCode;
     protected $_error;
     protected $_count;
+    protected $_oauthConsumer;
 
+    
+    public function __construct() {
+		$this->_oauthConsumer = new OAuthConsumer(Rest::$consumerKey, Rest::$consumerSecret, NULL);
+		
+	}
     // Convenience Methods for Objects, Users, Push Notifications
 
     // Objects /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * GET Objects
-     * @url https://parse.com/docs/rest#objects-retrieving
+     * @url https://developer.stackmob.com/sdks/rest/api#a-get_-_read_objects
      *
      * @param $objectClass
      * @param array $params
@@ -72,6 +78,22 @@ class Rest {
         return $this->post($path,$data);
     }
 
+    // New object: curl -svx localhost:8001 -H "Accept: application/vnd.stackmob+json; version=0" -d '{"score_id":"1", "my_score":5, "worries_score" : 6}' http://api.mob1.stackmob.com/user/jimbo/score
+    // Existing object: curl -svx localhost:8001 -H "Accept: application/vnd.stackmob+json; version=0" -d '{"score_id":"5185B00C-CB03-449B-BD6D-2F466E24DC52"}' -X PUT http://api.mob1.stackmob.com/user/jimbo/score
+    
+    protected function relateAndCreate($objectClass, $id, $relateClass, $data) {
+        $path = $this->objectPath($objectClass, $id);
+        $path = "$path/$relateClass";
+        return $this->post($path,$data);
+    }
+    
+    protected function relate($objectClass, $id, $relateClass, $relateId) {
+        $path = $this->objectPath($objectClass, $id);
+        $path = "$path/$relateClass";
+        $data = array ($relateClass . '_id' => $relateId);
+        return $this->put($path, $data);
+    }
+    
     /**
      * PUT Object
      * @url https://parse.com/docs/rest#objects-updating
@@ -103,7 +125,7 @@ class Rest {
     /**
      * POST a push notification
      *
-     * @url https://parse.com/docs/rest#push
+     * @url https://developer.stackmob.com/sdks/rest/api#a-sending_to_a_specific_user_s_
      *
      * @param $channels - one or more "channels" to target
      * @param array $data - Dictionary with supported keys (or any arbitrary ones)
@@ -137,7 +159,7 @@ class Rest {
 
     /**
      * GET Users
-     * @url https://parse.com/docs/rest#users-retrieving
+     * @url https://developer.stackmob.com/sdks/rest/api#a-get_-_read_objects
      *
      * @param array $params
      * @return array
@@ -149,13 +171,14 @@ class Rest {
 
     /**
      * GET User
-     * @url https://parse.com/docs/rest#users-retrieving
+     * @url https://developer.stackmob.com/sdks/rest/api#a-find_by_id
      *
      * @param $objectId
      * @return array
      */
-    public function getUser($objectId){
-        $path = $this->userPath($objectId);
+    public function getUser($username,$depth){
+        $path = $this->userPath($username,$depth);
+        echo "PATH: $path";
         return $this->get($path);
     }
 
@@ -206,8 +229,9 @@ class Rest {
         $path = Rest::LOGIN_PATH;
 
         $data = array('username'=>$username,'password'=>$password);
-
-        $user = $this->get($path,$data);
+        
+        $qs = http_build_query($data);
+        $user = $this->get($path . '?' . $qs,null);
 
         if(is_object($user)){
             if(isset($user->sessionToken)){
@@ -347,6 +371,61 @@ class Rest {
 
     // Protected/Private ///////////////////////////////////////////////////////////////////////////////////////////////
 
+    function send_request($http_method, $url, $auth_header=null, $postData=null) {  
+	echo "send_request:<br/>";
+	echo print_r($http_method, true)."<br/>";
+	echo print_r($url, true)."<br/>";
+	echo print_r($auth_header, true)."<br/>";
+	echo print_r($postData, true)."<br/>";
+	
+  $curl = curl_init($url);  
+  curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);  
+  curl_setopt($curl, CURLOPT_FAILONERROR, true);  
+  curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+  
+  switch($http_method) {  
+    case 'GET':  
+      curl_setopt($curl, CURLOPT_HTTPHEADER, array("Content-Type: application/vnd.stackmob+json;",
+				'Content-Length: 0',
+				"Accept: application/vnd.stackmob+json; version=0",
+				$auth_header));   
+      break;  
+    case 'POST':
+	  	curl_setopt($curl, CURLOPT_HTTPHEADER, array(
+	  		'Content-Type: application/vnd.stackmob+json; version=0',
+				'Content-Length: '.strlen(json_encode($postData)),
+				"Accept: application/vnd.stackmob+json; version=0",
+				$auth_header));
+      curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $http_method);                                          
+      curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($postData));  
+      break;  
+    case 'PUT':
+			curl_setopt($curl, CURLOPT_HTTPHEADER, array("Content-Type: application/vnd.stackmob+json;",
+				'Content-Length: '.strlen(json_encode($postData)),
+				"Accept: application/vnd.stackmob+json; version=0",
+				$auth_header));
+			curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $http_method);  
+			curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($postData));  
+			break;  
+    case 'DELETE':
+			curl_setopt($curl, CURLOPT_HTTPHEADER, array("Content-Type: application/vnd.stackmob+json;",
+				'Content-Length: 0',
+				"Accept: application/vnd.stackmob+json; version=0",$auth_header));   
+			curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $http_method);   
+      break;  
+  }  
+  
+  echo $curl."\n\n";
+  
+  $response = curl_exec($curl);  
+  if (!$response) {  
+    $response = curl_error($curl);  
+  }  
+  curl_close($curl);  
+  return $response;  
+}
+
+
     /**
      * Does all actual REST calls via CURL
      *
@@ -355,61 +434,92 @@ class Rest {
      * @param array $data
      * @return array
      */
-    protected function request($path,$method,$data=array()){
+    protected function request($path,$method,$postData=array(),$params=NULL){
+        $endpoint = Rest::API_URL.'/'.$path;
+        echo "endpoint: " . $endpoint . "<br/>";
 
-        $c = curl_init();
-        curl_setopt($c, CURLOPT_TIMEOUT, $this->timeout);
-        curl_setopt($c, CURLOPT_USERAGENT, Rest::USER_AGENT);
-        curl_setopt($c, CURLOPT_RETURNTRANSFER, true);
 
-        $requestHeaders = array(
-            'Content-Type: application/json',
-            'X-Parse-Application-Id: '.Rest::$applicationId,
-            'X-Parse-REST-API-Key: '.Rest::$restAPIKey
-        );
+        // Setup OAuth request - Use NULL for OAuthToken parameter
+        $request = OAuthRequest::from_consumer_and_token($this->_oauthConsumer, NULL, $method, $endpoint, $params);
 
-        if($this->sessionToken){
-            $requestHeaders[] = 'X-Parse-Session-Token: '.$this->sessionToken;
-        }
+        // Sign the constructed OAuth request using HMAC-SHA1 - Use NULL for OAuthToken parameter
+        $request->sign_request(new OAuthSignatureMethod_HMAC_SHA1(), $this->_oauthConsumer, NULL);
 
-        curl_setopt($c, CURLOPT_HTTPHEADER, $requestHeaders);
-        curl_setopt($c, CURLOPT_CUSTOMREQUEST, $method);
+        // Extract OAuth header from OAuth request object and keep it handy in a variable
+        $oauth_header = $request->to_header();
 
-        $url = Rest::API_URL.$path;
-        curl_setopt($c, CURLOPT_URL, $url);
+        echo "request:<br/>".print_r($request, true)."<br/>";
 
-        if($method == 'PUT' || $method == 'POST'){
-            if(!empty($data)){
-                $postData = json_encode($data);
-            }else{
-                $postData = json_encode((object)$data);
-            }
-            curl_setopt($c, CURLOPT_POSTFIELDS, $postData );
-            //echo($url."<br />");
-        }else if(!empty($data)){
-            if(isset($data['where'])){
-                $data['where'] = json_encode($data['where']);
-            }
-            $query = http_build_query($data, '', '&');
-            //echo($url.'?'.$query."<br />");
-            curl_setopt($c, CURLOPT_URL, $url.'?'.$query);
-        }
 
-        curl_setopt($c, CURLOPT_HEADER, 1);
+        $response = $this->send_request($request->get_normalized_http_method(), $endpoint, $oauth_header, $postData);
 
-        $response = curl_exec($c);
-        $statusCode = curl_getinfo($c, CURLINFO_HTTP_CODE);
+        echo "response:<br/>" . print_r($response, true) . "<br/>";
 
-        if(!$response){
+        return $response;
 
-            $this->_results = null;
-            $this->_statusCode = 500;
-            $this->_errorCode = 500;
-            $this->_error = "Could not connect to Parse?";
 
-            return $this->_results;
+        
+        
+        $url = Rest::API_URL.'/'.$path;
+        $request = OAuthRequest::from_consumer_and_token($this->_oauthConsumer, NULL, $method, $url, $params);
+        $request->sign_request(new OAuthSignatureMethod_HMAC_SHA1(), $this->_oauthConsumer, NULL);
+        $oauth_header = $request->to_header();
+        echo "request:<br/>".print_r($request, true)."<br/>";
 
-        }else{
+  	  $curl = curl_init($url);  
+	  curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);  
+	  curl_setopt($curl, CURLOPT_FAILONERROR, true);  
+	  curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+
+	  $http_method = $request->get_normalized_http_method();
+
+        echo "send_request:<br/>";
+	echo print_r($http_method, true)."<br/>";
+	echo print_r($url, true)."<br/>";
+	echo print_r($oauth_header, true)."<br/>";
+	echo print_r($postData, true)."<br/>";
+
+          
+          switch($http_method) {  
+	    case 'GET':  
+	      curl_setopt($curl, CURLOPT_HTTPHEADER, array("Content-Type: application/vnd.stackmob+json;",
+					'Content-Length: 0',
+					"Accept: application/vnd.stackmob+json; version=0",
+					$oauth_header));   
+	      break;  
+	    case 'POST':
+		  	curl_setopt($curl, CURLOPT_HTTPHEADER, array(
+		  		'Content-Type: application/vnd.stackmob+json; version=0',
+					'Content-Length: '.strlen(json_encode($postData)),
+					"Accept: application/vnd.stackmob+json; version=0",
+					$oauth_header));
+	      curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $http_method);                                          
+	      curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($postData));  
+	      break;  
+	    case 'PUT':
+				curl_setopt($curl, CURLOPT_HTTPHEADER, array("Content-Type: application/vnd.stackmob+json;",
+					'Content-Length: '.strlen(json_encode($postData)),
+					"Accept: application/vnd.stackmob+json; version=0",
+					$oauth_header));
+				curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $http_method);  
+				curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($postData));  
+				break;  
+	    case 'DELETE':
+				curl_setopt($curl, CURLOPT_HTTPHEADER, array("Content-Type: application/vnd.stackmob+json;",
+					'Content-Length: 0',
+					"Accept: application/vnd.stackmob+json; version=0",$oauth_header));   
+				curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $http_method);   
+	      break;  
+	    }
+        echo $curl."\n\n";
+
+        $response = curl_exec($curl);
+        $statusCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        if (!$response) {  
+            $response = curl_error($curl);  
+            echo "response:<br/>" . print_r($response, true) . "<br/>";
+
+        }  else{
 
             list($header, $body) = explode("\r\n\r\n", $response, 2);
 
@@ -452,24 +562,31 @@ class Rest {
      * @param null $objectId
      * @return string
      */
-    protected function objectPath($objectClass,$objectId=null){
+    protected function objectPath($objectClass,$objectId=null,$depth=null){
         $pieces = array(Rest::OBJECT_PATH_PREFIX, $objectClass);
         if($objectId){
             $pieces[] = $objectId;
         }
-        return implode('/',$pieces);
+        $url = implode('/',$pieces);
+        if($depth)
+            $url = "$url?_expand=$depth";
+        return $url;
     }
 
     /**
      * @param null $objectId
      * @return string
      */
-    protected function userPath($objectId=null){
+    protected function 
+            userPath($username=null,$depth=null){
         $pieces = array(Rest::USER_PATH);
-        if($objectId){
-            $pieces[] = $objectId;
+        if($username){
+            $pieces[] = $username;
         }
-        return implode('/',$pieces);
+        $url = implode('/',$pieces);
+        if($depth)
+            $url = "$url?_expand=$depth";
+        return $url;
     }
 
     /**
