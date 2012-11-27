@@ -1,42 +1,45 @@
 <?php
-/**
- * PHP Parse Object Implementation
- * @version 0.1
+
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
  */
-namespace Sparse;
+
+/**
+ * Description of Object
+ *
+ * @author jobrien
+ */
+
+namespace Stackmob;
 
 class Object {
-
-    // Class ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    const USER_OBJECT_CLASS = 'User';
-
+    //put your code here
+    
+  
     /**
      * @var Rest
      */
     protected static $_restClient;
 
-    /**
-     * Saves the given list of Sparse\Objects
-     *
-     * @param $list
-     */
-    public static function saveAll($list){
+    // Instance ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    const USER_OBJECT_CLASS = 'User';
+
+    public $objectClass;
+
+    protected $smSuppliedAttributes = array('createddate','lastmoddate');
+
+    protected $_attributes = array();
+    protected $_relationships = array();
+    protected $_dirtyKeys = array();
+    protected $_pk;
+    protected $_rest;
+    
+   public static function saveAll($list){
         foreach($list as $obj){
             $obj->save();
         }
     }
-
-    // Instance ////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    public $objectClass;
-
-    protected $parseSuppliedAttributes = array('objectId','createdAt','updatedAt');
-
-    protected $_attributes = array();
-    protected $_dirtyKeys = array();
-    protected $_rest;
-
     /**
      * Constructor
      * Creates a new model with defined attributes.
@@ -44,17 +47,17 @@ class Object {
      * @param $objectClass
      * @param array $attributes
      */
-    public function __construct($objectClass,$attributes=array()){
+    public function __construct($objectClass,$attributes=array(), $pk=null){
 
         $this->objectClass = $objectClass;
-
+        $this->_pk = $pk ? $pk : lc($objectClass) . '_id';
         $this->attributes($attributes);
 
         // TODO: Fix the use of many rest clients
-        $this->_rest = new \Sparse\Rest();
+        $this->_rest = new \Stackmob\Rest();
 
         if(!Object::$_restClient){
-            Object::$_restClient = new \Sparse\Rest();
+            Object::$_restClient = new \Stackmob\Rest();
         }
 
         $this->initialize();
@@ -76,6 +79,12 @@ class Object {
 
     // API /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    public function id($id=null){
+        if($id){
+            $this->set($this->_pk,$id);
+        }
+        return $this->get($this->_pk);
+    }
     /**
      * Atomically add an object to the end of the array associated with a given key.
      *
@@ -142,9 +151,6 @@ class Object {
      * @return string
      */
     public function className(){
-        if($this->objectClass == Object::USER_OBJECT_CLASS){
-            return '_'.$this->objectClass;
-        }
         return $this->objectClass;
     }
 
@@ -208,19 +214,21 @@ class Object {
      * Fetch the model from the server.
      * If the server's representation of the model differs from its current attributes, they will be overriden.
      */
-    public function fetch(){
+    public function fetch($depth = null){
         $id = $this->id();
-        if($id){
+//        if($id){
             if($this->objectClass == Object::USER_OBJECT_CLASS){
-                $fetched = $this->_rest->getuser($id);
+                $fetched = $this->_rest->getUser($id,$depth);
             }else{
-                $fetched = $this->_rest->getObject($this->objectClass,$id);
+                $fetched = $this->_rest->getObject($this->objectClass,$id,$depth);
             }
             if($this->_rest->statusCode() == 200){
                 $this->clearDirtyKeys();
                 $this->attributes($this->mergeAttributes($fetched));
+            } else {
+                return false;
             }
-        }
+//        } 
     }
 
     /**
@@ -229,9 +237,6 @@ class Object {
      * @return mixed
      */
     public function get($key){
-        if($key=='id'){
-            $key = 'objectId';
-        }
         return $this->has($key) ? $this->_attributes[$key] : null;
     }
 
@@ -294,39 +299,9 @@ class Object {
         return true;
     }
 
-    /**
-     * Convenience method to get/set Parse objectId
-     * Note: Addition from SDK
-     * @param string $id
-     * @return string
-     */
-    public function id($id=null){
-        if($id){
-            $this->set('objectId',$id);
-        }
-        return $this->get('objectId');
-    }
 
     public function op(){
         // Not yet implemented
-    }
-
-    /**
-     * Convenience method to get a pointer to this object
-     * Note: Addition from SDK
-     * @return array
-     */
-    public function pointer(){
-        $pointer = array();
-        // objects should be saved before used as a pointer
-        if(!$this->isNew()){
-            $pointer = array(
-                '__type'=>'Pointer',
-                'className'=>$this->className(),
-                'objectId'=>$this->id(),
-            );
-        }
-        return $pointer;
     }
 
     /**
@@ -372,7 +347,7 @@ class Object {
     public function save($keyOrAttributes=null, $valueForKey=null){
 
         $this->set($keyOrAttributes,$valueForKey);
-
+        $success = false;
         if($this->isNew()){
 
             $attributes = $this->formatAttributesForTransfer($this->attributes());
@@ -380,7 +355,7 @@ class Object {
             if($this->_rest->statusCode() == 201){
                 $this->clearDirtyKeys();
                 $this->updateAttributes((array)$created);
-                return true;
+                $success = true;;
             }
 
         }else{
@@ -392,14 +367,41 @@ class Object {
                 if($this->_rest->statusCode() == 200){
                     $this->clearDirtyKeys();
                     $this->updateAttributes((array)$updated);
-                    return true;
+                    $success = true;
                 }
             }
         }
-
-        return false;
+        // Add relationships if any
+        if($success && count($this->_relationships) > 0) {
+            foreach ($this->_relationships as $relationship) {
+                if($relationship->isNew()) {
+                    $created = $this->_rest->relateAndCreate($this->objectClass, $this->id(), $relationship->objectClass, $relationship->attributes);
+                    if($this->_rest->statusCode() == 201){
+                        $this->updateAttributes(array($relationship->objectClass => $created));
+                        $success = true;;
+                    } else {
+                        $success = false;
+                    }
+                } else {
+                    $updated = $this->_rest->relate($this->objectClass, $this->id(), $relationship->objectClass, $relationship->id());
+                    if($this->_rest->statusCode() == 201){
+                        $this->updateAttributes(array($relationship->objectClass => $relationship->attributes));
+                        $success = true;
+                    } else {
+                        $success = false;
+                    }
+                }
+            }
+            $this->_relationships = array();
+        }
+        return $success;
+    }
+    
+    public function addRelationship($object) {
+        $this->_relationships[] = $object;
     }
 
+   
     /**
      * Sets a hash of model attributes on the object
      * You can call it with an array containing keys and values, or with one key and value.
@@ -458,8 +460,8 @@ class Object {
     public function validate($attrs){
         // Not yet implemented
     }
-
-    // Internal Methods ////////////////////////////////////////////////////////////////////////////////////////////////
+    
+       // Internal Methods ////////////////////////////////////////////////////////////////////////////////////////////////
 
     protected function addDirtyKey($key){
         if(!in_array($key,$this->_dirtyKeys)){
@@ -482,13 +484,13 @@ class Object {
     }
 
     /**
-     * "Resets" attributes by removing parse specific keys
+     * "Resets" attributes by removing sm specific keys
      * Used when destroying or cloning (non-mutating)
      * @param $attributes
      * @return array
      */
     protected function resetAttributes($attributes){
-        foreach($this->parseSuppliedAttributes as $k){
+        foreach($this->smSuppliedAttributes as $k){
             if(isset($attributes[$k])){
                 unset($attributes[$k]);
             }
@@ -520,8 +522,7 @@ class Object {
 
     protected function processIncomingAttribute($value){
         if(is_object($value)){
-            if(get_class($value) != 'Sparse\Object'){
-
+            if(get_class($value) != 'Stackmob\Object'){
                 if(isset($value->className) && isset($value->__type) && ($value->__type == 'Object' || $value->__type == 'Pointer')){
                     $objectClass = $value->className;
                     unset($value->__type);
@@ -540,12 +541,12 @@ class Object {
     protected function formatAttributesForTransfer($attributes){
         $formatted = array();
         foreach($attributes as $key=>$value){
-            if(!in_array($key,$this->parseSuppliedAttributes)){
+            if(!in_array($key,$this->stackmobSuppliedAttributes)){
                 if(is_object($value)){
-                    if(get_class($value) == 'Sparse\Object'){
+                    if(get_class($value) == 'Stackmob\Object'){
                         $value = $value->pointer();
                         $formatted[$key] = $value;
-                    }elseif(get_class($value) == 'Sparse\User'){
+                    }elseif(get_class($value) == 'Stackmob\User'){
                         $value = $value->pointer();
                         $formatted[$key] = $value;
                     }
@@ -557,3 +558,5 @@ class Object {
         return $formatted;
     }
 }
+
+?>
