@@ -34,6 +34,7 @@ class Object {
     protected $_dirtyKeys = array();
     protected $_pk;
     protected $_rest;
+    protected $log;
     
    public static function saveAll($list){
         foreach($list as $obj){
@@ -48,6 +49,7 @@ class Object {
      * @param array $attributes
      */
     public function __construct($objectClass,$attributes=array(), $pk=null){
+        $this->log = \Logger::getLogger(__CLASS__);
 
         $this->objectClass = $objectClass;
         $this->_pk = $pk ? $pk : lc($objectClass) . '_id';
