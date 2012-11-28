@@ -7,7 +7,8 @@ namespace Stackmob;
 class User extends Object {
 
     // Class ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+    const STACKMOB_USER_SESSION_KEY = 'stackmob-user';
+    
     /**
      * @var User
      */
@@ -22,8 +23,8 @@ class User extends Object {
             return User::$_current;
         }else{
             session_start();
-            if(!empty($_SESSION['stackmob-session-token']) && !empty($_SESSION['stackmob-user'])){
-                $attributes = json_decode($_SESSION['stackmob-user']);
+            if(!empty($_SESSION[User::STACKMOB_USER_SESSION_KEY])){
+                $attributes = json_decode($_SESSION[User::STACKMOB_USER_SESSION_KEY]);
                 User::$_current = new User($attributes);
                 return User::$_current;
             }else{
@@ -67,7 +68,6 @@ class User extends Object {
     public static function logOut(){
         // current network no-op, no docs on rest API logging out
         if(User::$_current){
-            User::$_current->unsetAttr('sessionToken');
             User::$_current = null;
             session_destroy();
         }
@@ -97,8 +97,8 @@ class User extends Object {
      * Checks whether this user is the current user and has been authenticated.
      */
     public function authenticated(){
-        $sessionToken = $this->get('sessionToken');
-        return ($this->isCurrent() && $sessionToken);
+        $session = $_SESSION[User::STACKMOB_USER_SESSION_KEY];
+        return ($this->isCurrent() && $session);
     }
 
     /**
@@ -124,31 +124,57 @@ class User extends Object {
     }
 
     /**
-     * Logs in a Parse.User.
+     * Logs in a \Stackmob\User, retrieves that user,
+     * and puts in session.
+     * 
+     * @param $username
+     * @param $password
+     * @return boolean
+     * @throws \Stackmob\StackmobException
+     * 
      */
-    public function logIn(){
-
-        $username = $this->getUsername();
-        $password = $this->get('password');
+    public function logIn($username = null, $password = null){
+        $ret = false;
+        
+        $username = $username ? $username : $this->getUsername();
+        $password = $password ? $password : $this->get('password');
 
         if($username && $password){
-
-            $loggedIn = Object::$_restClient->login($username,$password);
-
-            if(Object::$_restClient->statusCode() == 200){
+            session_start();
+            try {
+                Object::$_restClient->login($username,$password);
+                $user = $this->fetch();
+            } catch (\Stackmob\StackmobException $e) {
+                throw($e);
+            }
+            if(Object::$_restClient->statusCode() == 200 && $user){
                 $this->clearDirtyKeys();
-                $this->updateAttributes((array)$loggedIn);
+                $this->updateAttributes((array)$user);
                 $this->unsetAttr('password');
 
-                session_start();
-                $_SESSION['stackmob-session-token'] = $this->sessionToken;
-                $_SESSION['stackmob-user'] = $this->toJSON();
+                $_SESSION[User::STACKMOB_USER_SESSION_KEY] = $this->toJSON();
 
                 User::$_current = $this;
+                $ret = true;
             }
         }
+        return $ret;
     }
 
+    /**
+     * 
+     * @return boolean
+     * @throws \Stackmob\StackmobException
+     */
+    public function logout() {
+        $ret = false;
+        if($this->authenticated()) {
+            Object::$_restClient->logout($this->getUsername());
+            $ret = true;
+        }
+        return $ret;
+    }
+    
     /**
      * Calls set("email", $email)
      * @param $email
@@ -175,6 +201,7 @@ class User extends Object {
 
     /**
      * Signs up a new user.
+     * https://developer.stackmob.com/sdks/rest/api#a-post_-_create_object
      * @param array $attributes
      */
     public function signUp($attributes=array()){
