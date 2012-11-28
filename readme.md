@@ -44,7 +44,7 @@ This can be done anywhere or for portability just in Stackmob.php like so:
     // Your credentials:
     Rest::$consumerKey = "QWERTYUIOPASDFGHJKLZXCVBNM1234567890";
     Rest::$consumerSecret = "QWERTYUIOPASDFGHJKLZXCVBNM1234567890";
-    Rest::$VERSION = 0;	// replace or override with 1 for production
+    Rest::$DEVELOPMENT = true;	// change to false for production
 ````
 If done outside a Stackmob namespaced file, you'll need the namespace:
 
@@ -52,7 +52,7 @@ If done outside a Stackmob namespaced file, you'll need the namespace:
     // Your credentials:
     \Stackmob\Rest::$consumerKey = "QWERTYUIOPASDFGHJKLZXCVBNM1234567890";
     \Stackmob\Rest::$restAPIKey = "QWERTYUIOPASDFGHJKLZXCVBNM1234567890";
-    \Stackmob\Rest::$VERSION = 0;	// replace or override with 1 for production
+    \Stackmob\Rest::$DEVELOPMENT = true;	// change to false for production
 ````
 
 ## Simple usage
