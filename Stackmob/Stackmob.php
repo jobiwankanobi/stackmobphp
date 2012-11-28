@@ -8,6 +8,8 @@ class Stackmob {
      */
     protected static $_restClient;
 }
+require_once ('log4php/Logger.php');
+\Logger::configure(__DIR__ . '/log4php.xml');
 
 include("Rest.php");
 include("Object.php");
@@ -16,6 +18,6 @@ include("StackmobException.php");
 // include("Push.php");
 
 // Your credentials:
-Rest::$consumerKey = "1e2fc86e-50ad-4230-a30d-0ba86ee50fb0";
-Rest::$consumerSecret = "72b2fe32-1629-4684-88ec-05b5c29ea68d";
+Rest::$consumerKey = "2423423423423423423";
+Rest::$consumerSecret = "23423432423424234234";
 Rest::$DEVELOPMENT = true;	// replace or override with false for live code
