@@ -16,7 +16,8 @@ class Rest {
     const OBJECT_PATH_PREFIX = '';
     const PUSH_PATH = 'https://push.stackmob.com';
     const USER_PATH = 'user';
-    const LOGIN_PATH = 'login';
+    const LOGIN_PATH = 'user/login';
+    const LOGOUT_PATH = 'user/logout';
 
     public $timeout = 5;
     public $sessionToken;
@@ -185,7 +186,7 @@ class Rest {
     /**
      * POST a new User
      *
-     * @url https://parse.com/docs/rest#users-signup
+     * @url https://developer.stackmob.com/sdks/rest/api#a-post_-_create_object
      *
      * @param $username
      * @param $password
@@ -231,15 +232,17 @@ class Rest {
         $data = array('username'=>$username,'password'=>$password);
         
         $qs = http_build_query($data);
+        
+        $this->get($path . '?' . $qs,null);
+
+        return true;
+    }
+    
+    public function logout($username) {
+        $path = Rest::LOGOUT_PATH;
+        $data = array('username' => $username);
+        $qs = http_build_query($data);
         $user = $this->get($path . '?' . $qs,null);
-
-        if(is_object($user)){
-            if(isset($user->sessionToken)){
-                $this->sessionToken = $user->sessionToken;
-            }
-        }
-
-        return $user;
     }
 
     /**
@@ -469,7 +472,9 @@ class Rest {
   	  $curl = curl_init($url);  
 	  curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);  
 	  curl_setopt($curl, CURLOPT_FAILONERROR, true);  
-	  curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+          // Turn off verify peer for development mode (local machine may
+          // not be verifiable)
+	  curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, !Stackmob::$DEVELOPMENT);
 
 	  $http_method = $request->get_normalized_http_method();
 
@@ -479,19 +484,20 @@ class Rest {
 	echo print_r($oauth_header, true)."<br/>";
 	echo print_r($postData, true)."<br/>";
 
+        $version = Stackmob::$DEVELOPMENT ? 0 : 1;
           
           switch($http_method) {  
 	    case 'GET':  
 	      curl_setopt($curl, CURLOPT_HTTPHEADER, array("Content-Type: application/vnd.stackmob+json;",
 					'Content-Length: 0',
-					"Accept: application/vnd.stackmob+json; version=0",
+					"Accept: application/vnd.stackmob+json; version=$version",
 					$oauth_header));   
 	      break;  
 	    case 'POST':
 		  	curl_setopt($curl, CURLOPT_HTTPHEADER, array(
 		  		'Content-Type: application/vnd.stackmob+json; version=0',
 					'Content-Length: '.strlen(json_encode($postData)),
-					"Accept: application/vnd.stackmob+json; version=0",
+					"Accept: application/vnd.stackmob+json; version=$version",
 					$oauth_header));
 	      curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $http_method);                                          
 	      curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($postData));  
@@ -499,7 +505,7 @@ class Rest {
 	    case 'PUT':
 				curl_setopt($curl, CURLOPT_HTTPHEADER, array("Content-Type: application/vnd.stackmob+json;",
 					'Content-Length: '.strlen(json_encode($postData)),
-					"Accept: application/vnd.stackmob+json; version=0",
+					"Accept: application/vnd.stackmob+json; version=$version",
 					$oauth_header));
 				curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $http_method);  
 				curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($postData));  
@@ -507,7 +513,7 @@ class Rest {
 	    case 'DELETE':
 				curl_setopt($curl, CURLOPT_HTTPHEADER, array("Content-Type: application/vnd.stackmob+json;",
 					'Content-Length: 0',
-					"Accept: application/vnd.stackmob+json; version=0",$oauth_header));   
+					"Accept: application/vnd.stackmob+json; version=$version",$oauth_header));   
 				curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $http_method);   
 	      break;  
 	    }
@@ -516,9 +522,8 @@ class Rest {
         $response = curl_exec($curl);
         $statusCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         if (!$response) {  
-            $response = curl_error($curl);  
-            echo "response:<br/>" . print_r($response, true) . "<br/>";
-
+            $response = curl_error($curl);
+            throw new StackmobException($response, $statusCode);
         }  else{
 
             list($header, $body) = explode("\r\n\r\n", $response, 2);
