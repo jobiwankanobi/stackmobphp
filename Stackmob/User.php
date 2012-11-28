@@ -3,6 +3,7 @@
  * User
  */
 namespace Stackmob;
+include_once("Stackmob.php");
 
 class User extends Object {
 
@@ -62,16 +63,7 @@ class User extends Object {
         return $user;
     }
 
-    /**
-     * Logs out the currently logged in user session.
-     */
-    public static function logOut(){
-        // current network no-op, no docs on rest API logging out
-        if(User::$_current){
-            User::$_current = null;
-            session_destroy();
-        }
-    }
+
 
     // Instance ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -140,7 +132,6 @@ class User extends Object {
         $password = $password ? $password : $this->get('password');
 
         if($username && $password){
-            session_start();
             try {
                 Object::$_restClient->login($username,$password);
                 $user = $this->fetch();
@@ -152,12 +143,14 @@ class User extends Object {
                 $this->updateAttributes((array)$user);
                 $this->unsetAttr('password');
 
+                session_start();
                 $_SESSION[User::STACKMOB_USER_SESSION_KEY] = $this->toJSON();
 
                 User::$_current = $this;
                 $ret = true;
             }
         }
+        
         return $ret;
     }
 
@@ -168,13 +161,16 @@ class User extends Object {
      */
     public function logout() {
         $ret = false;
-        if($this->authenticated()) {
+        if(User::$_current){
             Object::$_restClient->logout($this->getUsername());
+            User::$_current = null;
+            session_destroy();
             $ret = true;
         }
         return $ret;
     }
     
+        
     /**
      * Calls set("email", $email)
      * @param $email
