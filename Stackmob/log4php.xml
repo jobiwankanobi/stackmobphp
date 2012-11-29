@@ -3,7 +3,7 @@
     <appender name="myConsoleAppender" class="LoggerAppenderConsole" />
     
     <appender name="myFileAppender" class="LoggerAppenderFile">
-        <layout class="LoggerLayoutTTCC" />
+        <layout class="LoggerLayoutPattern" />
         <param name="file" value="sm.log" />
     </appender>
  
