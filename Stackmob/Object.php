@@ -174,12 +174,12 @@ class Object {
     }
 
     /**
-     * Destroy this model on the server if it was already persisted.
+     * Delete this model on the server if it was already persisted.
      */
-    public function destroy(){
+    public function delete(){
         $id = $this->id();
         if($id){
-            $this->_rest->deleteObject($this->objectClass,$id);
+            $this->_rest->deleteObject($this->objectClass,$this->_pk,$id);
             $this->clearDirtyKeys();
             $this->attributes($this->resetAttributes($this->attributes()));
         }
