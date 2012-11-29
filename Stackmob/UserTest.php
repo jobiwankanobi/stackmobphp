@@ -1,14 +1,11 @@
 <?php
 
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
-
 /**
- * Description of UserTest
+ * Test of User class.
+ * 
+ * Run like this: phpunit --stderr UserTest.php
  *
- * @author jobrien
+ * @author jobiwankanobi
  */
 namespace Stackmob;
 
@@ -30,17 +27,25 @@ class UserTest extends \PHPUnit_Framework_TestCase {
     public function testSignupUserStatic() {
         $user = User::signUpUser("jimbo", "123456");
         $this->assertEquals("jimbo", $user->getUsername());
-        $this->assertContains("createddate", array_keys($user->attributes()));
-        $this->assertContains("lastmoddate", array_keys($user->attributes()));
-        $this->assertContains("sm_owner", array_keys($user->attributes()));
+        $this->assertArrayHasKey("createddate", $user->attributes());
+        $this->assertArrayHasKey("lastmoddate", $user->attributes());
+        $this->assertArrayHasKey("sm_owner", $user->attributes());
+    }
+    
+    public function testLoginUserSuccess() {
+        $user = new User(array("username" => "jimbo", "password" => "123456"));
+        $user->logIn();
+        $this->assertArrayHasKey("lastmoddate", $user->attributes());
+        $this->assertArrayHasKey("createddate", $user->attributes());
+        $this->assertNotNull($_SESSION[\Stackmob\User::STACKMOB_USER_SESSION_KEY]);
     }
     
     public function testFetchUser() {
         $user = new User(array("username" => "jimbo"));
         $user->fetch();
-        $this->assertContains("createddate", array_keys($user->attributes()));
-        $this->assertContains("lastmoddate", array_keys($user->attributes()));
-        $this->assertContains("sm_owner", array_keys($user->attributes()));
+        $this->assertArrayHasKey("createddate", $user->attributes());
+        $this->assertArrayHasKey("lastmoddate", $user->attributes());
+        $this->assertArrayHasKey("sm_owner", $user->attributes());
     }
     
     public function testDeleteUser() {
@@ -51,6 +56,15 @@ class UserTest extends \PHPUnit_Framework_TestCase {
         } catch(\Stackmob\StackmobException $e) {
             $this->assertEquals($e->getMessage(), "The requested URL returned error: 404");
         }
+    }
+    
+    public function testSignupUserNonStatic() {
+        $user = new User(array("username" => "jimbo", "password" => "123456"));
+        $user->signUp();
+        $this->assertArrayHasKey("createddate", $user->attributes());
+        $this->assertArrayHasKey("lastmoddate", $user->attributes());
+        $this->assertArrayHasKey("sm_owner", $user->attributes());
+        $user->delete();
     }
 }
 
