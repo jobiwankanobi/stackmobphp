@@ -26,6 +26,32 @@ class UserTest extends \PHPUnit_Framework_TestCase {
         $user = new User();
         $user->logIn("jimbo", "23423423423");   // login with wrong password
     }
+    
+    public function testSignupUserStatic() {
+        $user = User::signUpUser("jimbo", "123456");
+        $this->assertEquals("jimbo", $user->getUsername());
+        $this->assertContains("createddate", array_keys($user->attributes()));
+        $this->assertContains("lastmoddate", array_keys($user->attributes()));
+        $this->assertContains("sm_owner", array_keys($user->attributes()));
+    }
+    
+    public function testFetchUser() {
+        $user = new User(array("username" => "jimbo"));
+        $user->fetch();
+        $this->assertContains("createddate", array_keys($user->attributes()));
+        $this->assertContains("lastmoddate", array_keys($user->attributes()));
+        $this->assertContains("sm_owner", array_keys($user->attributes()));
+    }
+    
+    public function testDeleteUser() {
+        $user = new User(array("username" => "jimbo"));
+        $user->delete();
+        try {
+            $user->fetch();
+        } catch(\Stackmob\StackmobException $e) {
+            $this->assertEquals($e->getMessage(), "The requested URL returned error: 404");
+        }
+    }
 }
 
 ?>
