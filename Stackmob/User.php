@@ -45,17 +45,23 @@ class User extends Object {
     }
 
     /**
+     * https://developer.stackmob.com/sdks/rest/api#a-post_-_create_object
+     * 
      * @param $username
      * @param $password
      * @param array $attributes
      * @return null|\Sparse\User
      */
     public static function signUpUser($username, $password, $attributes=array()){
+        if(!Object::$_restClient){
+            Object::$_restClient = new \Stackmob\Rest();
+        }
 
         $user = null;
         $created = Object::$_restClient->createUser($username,$password,$attributes);
-
-        if(Object::$_restClient->statusCode() == 200){
+        
+        
+        if(Object::$_restClient->statusCode() == 201){
 
             $user = new User((array)$created);
         }
