@@ -235,9 +235,7 @@ class Rest {
         
         $qs = http_build_query($data);
         
-        $this->get($path . '?' . $qs,null);
-
-        return true;
+        return $this->get($path . '?' . $qs,null);
     }
     
     public function logout($username) {
