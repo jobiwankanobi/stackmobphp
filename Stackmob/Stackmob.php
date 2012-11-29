@@ -14,6 +14,7 @@ require_once ('log4php/Logger.php');
 include("Rest.php");
 include("Object.php");
 include("User.php");
+include("Query.php");
 include("StackmobException.php");
 // include("Push.php");
 
