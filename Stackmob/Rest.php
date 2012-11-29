@@ -30,9 +30,11 @@ class Rest {
     protected $_error;
     protected $_count;
     protected $_oauthConsumer;
+    protected $_apiUrl;
     protected $log;
     
-    public function __construct() {
+    public function __construct($apiUrl = null) {
+                $this->_apiUrl = $apiUrl ? $apiUrl : Rest::API_URL;
 		$this->_oauthConsumer = new OAuthConsumer(Rest::$consumerKey, Rest::$consumerSecret, NULL);
                 $this->log = \Logger::getLogger(__CLASS__);
 		
@@ -98,7 +100,7 @@ class Rest {
     
     /**
      * PUT Object
-     * @url https://parse.com/docs/rest#objects-updating
+     * @url https://developer.stackmob.com/sdks/rest/api#a-put_-_update_object
      *
      * @param $objectClass
      * @param $objectId
@@ -112,14 +114,15 @@ class Rest {
 
     /**
      * DELETE Object
-     * @url https://parse.com/docs/rest#objects-deleting
+     * @url https://developer.stackmob.com/sdks/rest/api#a-delete_-_delete_object
      *
      * @param $objectClass
      * @param $objectId
+     * @param $pk
      * @return array
      */
-    public function deleteObject($objectClass,$objectId){
-        $path = $this->objectPath($objectClass,$objectId);
+    public function deleteObject($objectClass,$pk,$objectId){
+        $path = $this->deleteObjectPath($objectClass,$pk,$objectId);
         return $this->delete($path);
     }
 
@@ -430,40 +433,24 @@ class Rest {
   
   $response = curl_exec($curl);  
   $statusCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-
-    if (!$response) {  
+  $this->log->debug("Response: $response");
+  $this->log->debug("Status code: $statusCode");
+    if (!$response && $statusCode !== 200) {  
          $response = curl_error($curl);
          curl_close($curl);  
          
          throw new StackmobException($response, $statusCode);
     } else {
-        list($header, $body) = explode("\r\n\r\n", $response, 2);
 
-        $this->_responseHeaders = $this->http_parse_headers($header);
 
         $this->_statusCode = $statusCode;
-        $this->_response = $body;
+        $this->_response = $response;
         $this->_results = null;
 
-        $decoded = json_decode($body);
+        $decoded = json_decode($response);
 
         if(is_object($decoded)){
-            if(isset($decoded->results)){
-                $this->_results = $decoded->results;
-            }else{
-                if(isset($decoded->error)){
-                    $this->_error = $decoded->error;
-                    //$this->log->debug(($this->_error);
-                    if(isset($decoded->code)){
-                        $this->_errorCode = $decoded->code;
-                    }
-                }else{
-                    $this->_results = $decoded;
-                }
-            }
-            if(isset($decoded->count)){
-                $this->_count = (int)$decoded->count;
-            }
+            $this->_results = $decoded;
         }
         curl_close($curl);  
 
@@ -481,7 +468,7 @@ class Rest {
      * @return array
      */
     protected function request($path,$method,$postData=array(),$params=NULL){
-        $endpoint = Rest::API_URL.'/'.$path;
+        $endpoint = $this->_apiUrl.'/'.$path;
         $this->log->debug( "endpoint: " . $endpoint . "");
 
 
@@ -511,16 +498,19 @@ class Rest {
      * @return string
      */
     protected function objectPath($objectClass,$objectId=null,$depth=null){
-        $pieces = array(Rest::OBJECT_PATH_PREFIX, $objectClass);
+        $pieces = array(lc($objectClass));
         if($objectId){
             $pieces[] = $objectId;
         }
-        $url = implode('/',$pieces);
+        $url = \implode('/',$pieces);
         if($depth)
             $url = "$url?_expand=$depth";
         return $url;
     }
 
+    protected function deleteObjectPath($objectClass,$pk,$objectId) {
+        return \strtolower($objectClass) . "?$pk=$objectId";
+    }
     /**
      * @param null $objectId
      * @return string
@@ -531,7 +521,7 @@ class Rest {
         if($username){
             $pieces[] = $username;
         }
-        $url = implode('/',$pieces);
+        $url = \implode('/',$pieces);
         if($depth)
             $url = "$url?_expand=$depth";
         return $url;
