@@ -51,9 +51,9 @@ class Rest {
      * @param array $params
      * @return array
      */
-    public function getObjects($objectClass,$params=array()){
+    public function getObjects($objectClass,$params=array(),$selects=null,$order=null,$range=null,$depth=null){
         $path = $this->objectPath($objectClass);
-        return $this->get($path,$params);
+        return $this->get($path,$params,$selects,$order,$range,$depth);
     }
 
     /**
@@ -165,13 +165,17 @@ class Rest {
     /**
      * GET Users
      * @url https://developer.stackmob.com/sdks/rest/api#a-get_-_read_objects
-     *
-     * @param array $params
-     * @return array
+     * 
+     * @param type $params
+     * @param type $selects
+     * @param type $order
+     * @param type $range
+     * @param type $depth
+     * @return type
      */
-    public function getUsers($params=array()){
+    public function getUsers($params=array(),$selects=null,$order=null,$range=null,$depth=null){
         $path = $this->userPath();
-        return $this->get($path,$params);
+        return $this->get($path,$params,$selects,$order,$range,$depth);
     }
 
     /**
@@ -347,8 +351,20 @@ class Rest {
      * @param array $data
      * @return array
      */
-    public function get($path,$data=array()){
-        return $this->request($path,'GET',$data);
+    public function get($path,$data=array(),$selects=null,$order=null,$range=null,$depth=null){
+        $headers = array();
+        if($depth)
+            $data[] = array("_expand" => $depth);
+        if($selects)
+            $headers[]=$selects;
+        if($order)
+            $headers[]=$order;
+        if($range)
+            $headers[]=$range;
+        $query = http_build_query($data);
+        if($query)
+            $path = "$path?$query";
+        return $this->request($path,'GET',null,implode("\n", $headers));
     }
 
     /**
@@ -382,11 +398,12 @@ class Rest {
 	return $dump;
    }
    
-    function send_request($http_method, $url, $auth_header=null, $postData=null) {  
+    function send_request($http_method, $url, $auth_header=null, $postData=null, $headers=null) {  
 	$this->log->debug( "send_request:");
 	$this->log->debug( print_r($http_method, true)."");
 	$this->log->debug( print_r($url, true)."");
 	$this->log->debug( print_r($auth_header, true)."");
+        $this->log->debug("Headers: $headers");
 	$this->log->debug( print_r($postData, true)."");
         $version = Rest::$DEVELOPMENT ? 0 : 1;
 	
@@ -400,6 +417,7 @@ class Rest {
       curl_setopt($curl, CURLOPT_HTTPHEADER, array("Content-Type: application/vnd.stackmob+json;",
 				'Content-Length: 0',
 				"Accept: application/vnd.stackmob+json; version=$version",
+                                $headers,
 				$auth_header));   
       break;  
     case 'POST':
@@ -407,6 +425,7 @@ class Rest {
 	  		'Content-Type: application/vnd.stackmob+json;',
 				'Content-Length: '.strlen(json_encode($postData)),
 				"Accept: application/vnd.stackmob+json; version=$version",
+                                $headers,
 				$auth_header));
       curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $http_method);                                          
       curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($postData));  
@@ -415,6 +434,7 @@ class Rest {
 			curl_setopt($curl, CURLOPT_HTTPHEADER, array("Content-Type: application/vnd.stackmob+json;",
 				'Content-Length: '.strlen(json_encode($postData)),
 				"Accept: application/vnd.stackmob+json; version=$version",
+                                $headers,
 				$auth_header));
 			curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $http_method);  
 			curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($postData));  
@@ -422,7 +442,8 @@ class Rest {
     case 'DELETE':
 			curl_setopt($curl, CURLOPT_HTTPHEADER, array("Content-Type: application/vnd.stackmob+json;",
 				'Content-Length: 0',
-				"Accept: application/vnd.stackmob+json; version=$version",$auth_header));   
+				"Accept: application/vnd.stackmob+json; version=$version",
+                                                            $headers, $auth_header));   
 			curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $http_method);   
       break;  
   }  
@@ -458,14 +479,15 @@ class Rest {
 
 
     /**
-     * Does all actual REST calls via CURL
-     *
-     * @param $path
-     * @param $method
-     * @param array $data
-     * @return array
+     * 
+     * @param type $path
+     * @param type $method
+     * @param type $postData
+     * @param type $headers
+     * @return type
      */
-    protected function request($path,$method,$postData=array(),$params=NULL){
+    protected function request($path,$method,$postData=array(),$headers=null){
+        $params=NULL;
         $endpoint = $this->_apiUrl.'/'.$path;
         $this->log->debug( "endpoint: " . $endpoint . "");
 
@@ -482,7 +504,7 @@ class Rest {
         $this->log->debug( "request:".print_r($request, true)."");
 
 
-        $response = $this->send_request($request->get_normalized_http_method(), $endpoint, $oauth_header, $postData);
+        $response = $this->send_request($request->get_normalized_http_method(), $endpoint, $oauth_header, $postData, $headers);
 
         $this->log->debug( "response:" . print_r($response, true) . "");
 
@@ -514,14 +536,12 @@ class Rest {
      * @return string
      */
     protected function 
-            userPath($username=null,$depth=null){
+            userPath($username=null){
         $pieces = array(Rest::USER_PATH);
         if($username){
             $pieces[] = $username;
         }
         $url = \implode('/',$pieces);
-        if($depth)
-            $url = "$url?_expand=$depth";
         return $url;
     }
 
