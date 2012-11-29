@@ -1,14 +1,9 @@
 <?php
 
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
-
 /**
- * Description of Object
+ * 
  *
- * @author jobrien
+ * @author jobiwankanobi
  */
 
 namespace Stackmob;
@@ -36,6 +31,11 @@ class Object {
     protected $_rest;
     protected $log;
     
+   /**
+    * Save list of objects
+    * 
+    * @param type $list
+    */
    public static function saveAll($list){
         foreach($list as $obj){
             $obj->save();
@@ -47,12 +47,13 @@ class Object {
      *
      * @param $objectClass
      * @param array $attributes
+     * @param $pk
      */
     public function __construct($objectClass,$attributes=array(), $pk=null){
         $this->log = \Logger::getLogger(__CLASS__);
 
         $this->objectClass = $objectClass;
-        $this->_pk = $pk ? $pk : lc($objectClass) . '_id';
+        $this->_pk = $pk ? $pk : strtolower($objectClass) . '_id';
         $this->attributes($attributes);
 
         // TODO: Fix the use of many rest clients
@@ -80,13 +81,20 @@ class Object {
     }
 
     // API /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+    
+    /**
+     * Gets or sets the object id (primary key value).
+     * 
+     * @param type $id
+     * @return type
+     */
     public function id($id=null){
         if($id){
             $this->set($this->_pk,$id);
         }
         return $this->get($this->_pk);
     }
+    
     /**
      * Atomically add an object to the end of the array associated with a given key.
      *
@@ -218,7 +226,7 @@ class Object {
      */
     public function fetch($depth = null){
         $id = $this->id();
-//        if($id){
+        if($id){
             if($this->objectClass == Object::USER_OBJECT_CLASS){
                 $fetched = $this->_rest->getUser($id,$depth);
             }else{
@@ -230,7 +238,7 @@ class Object {
             } else {
                 return false;
             }
-//        } 
+        } 
     }
 
     /**
@@ -267,6 +275,7 @@ class Object {
     /**
      * Increments the value of the given attribute
      * If no amount is specified, 1 is used by default.
+     * https://developer.stackmob.com/sdks/rest/api#a-atomic_increment_decrement
      * @param $attr
      * @param int $amount
      */
@@ -373,7 +382,7 @@ class Object {
                 }
             }
         }
-        // Add relationships if any
+        // Save relationships if any
         if($success && count($this->_relationships) > 0) {
             foreach ($this->_relationships as $relationship) {
                 if($relationship->isNew()) {
@@ -543,7 +552,7 @@ class Object {
     protected function formatAttributesForTransfer($attributes){
         $formatted = array();
         foreach($attributes as $key=>$value){
-            if(!in_array($key,$this->stackmobSuppliedAttributes)){
+            if(!in_array($key,$this->smSuppliedAttributes)){
                 if(is_object($value)){
                     if(get_class($value) == 'Stackmob\Object'){
                         $value = $value->pointer();
