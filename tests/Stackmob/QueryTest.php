@@ -19,7 +19,6 @@ class QueryTest extends \PHPUnit_Framework_TestCase {
        
         $query = new Query('User');
         $query->isEqual('age', 25);
-        $query->asc("age");
         $query->find();
     }
     
