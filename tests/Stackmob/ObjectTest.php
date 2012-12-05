@@ -10,7 +10,6 @@
 
 namespace Stackmob;
 
-include_once("Stackmob.php");
 
 
 class ObjectTest {

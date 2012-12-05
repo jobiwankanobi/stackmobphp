@@ -9,7 +9,7 @@
  */
 namespace Stackmob;
 
-include_once("Stackmob.php");
+include_once(dirname(__FILE__) . "/../../src/Stackmob/Stackmob.php");
 
 class UserTest extends \PHPUnit_Framework_TestCase {
     
