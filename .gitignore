@@ -4,3 +4,4 @@ src/Stackmob/sm.log
 /composer.lock
 /composer.phar
 vendor/
+index.php
