@@ -1,5 +1,6 @@
 tests.php
 /nbproject
-/Stackmob/sm.log
+src/Stackmob/sm.log
 /composer.lock
 /composer.phar
+vendor/
