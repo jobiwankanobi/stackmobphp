@@ -8,7 +8,7 @@ class Stackmob {
      */
     protected static $_restClient;
 }
-require 'vendor/autoload.php';
+require '../../vendor/autoload.php';
 \Logger::configure(__DIR__ . '/log4php.xml');
 
 include("Rest.php");
