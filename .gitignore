@@ -1,3 +1,5 @@
 tests.php
 /nbproject/private/
 /Stackmob/sm.log
+/composer.lock
+/composer.phar
