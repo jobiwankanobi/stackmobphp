@@ -632,7 +632,7 @@ class Rest {
 
 
         // Check if logged in and if session expired
-        $loggedIn = isset($_SESSION[SM_LOGIN_USERNAME]);
+        $loggedIn = isset($_SESSION[Rest::SM_LOGIN_USERNAME]);
         if($loggedIn) {
             if($this->isLoginSessionExpired()) {
                 session_destroy();
