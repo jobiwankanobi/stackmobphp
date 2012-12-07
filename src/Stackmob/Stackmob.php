@@ -17,6 +17,7 @@ include("User.php");
 include("Query.php");
 include("CustomCode.php");
 include("StackmobException.php");
+include("LoginSessionExpiredException.php");
 // include("Push.php");
 
 // Your credentials:
