@@ -1,0 +1,3 @@
+[submodule "src/restclient"]
+	path = src/restclient
+	url = https://github.com/tcdent/php-restclient.git
