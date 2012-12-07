@@ -14,17 +14,17 @@ include_once(dirname(__FILE__) . "/../../src/Stackmob/Stackmob.php");
 class UserTest extends \PHPUnit_Framework_TestCase {
     
 
-   public function testSignupUserStatic() {
-        Rest::$consumerKey = "a368126f-4b41-4e54-ac45-394df81fe404";
-        Rest::$consumerSecret = "1dd779df-ab0e-446b-8bdb-52641ef97df4";
-
-        $user = User::signUpUser("jimbo", "123456");
-        $user->set("age", 25);
-        $this->assertEquals("jimbo", $user->getUsername());
-        $this->assertArrayHasKey("createddate", $user->attributes());
-        $this->assertArrayHasKey("lastmoddate", $user->attributes());
-        $this->assertArrayHasKey("sm_owner", $user->attributes());
-    }
+//   public function testSignupUserStatic() {
+//        Rest::$consumerKey = "a368126f-4b41-4e54-ac45-394df81fe404";
+//        Rest::$consumerSecret = "1dd779df-ab0e-446b-8bdb-52641ef97df4";
+//
+//        $user = User::signUpUser("jimbo", "123456");
+//        $user->set("age", 25);
+//        $this->assertEquals("jimbo", $user->getUsername());
+//        $this->assertArrayHasKey("createddate", $user->attributes());
+//        $this->assertArrayHasKey("lastmoddate", $user->attributes());
+//        $this->assertArrayHasKey("sm_owner", $user->attributes());
+//    }
 
      public function testLoginUserSuccess() {
         Rest::$consumerKey = "a368126f-4b41-4e54-ac45-394df81fe404";
@@ -34,11 +34,15 @@ class UserTest extends \PHPUnit_Framework_TestCase {
         $user->logIn();
         $this->assertArrayHasKey("lastmoddate", $user->attributes());
         $this->assertArrayHasKey("createddate", $user->attributes());
-        $this->assertNotNull($_SESSION[\Stackmob\User::STACKMOB_LOGGED_IN_COOKIE]);
+        session_destroy();
     }  
 
-    
     public function testLoginCreateObjectOwner() {
+        Rest::$consumerKey = "a368126f-4b41-4e54-ac45-394df81fe404";
+        Rest::$consumerSecret = "1dd779df-ab0e-446b-8bdb-52641ef97df4";
+        $user = new User(array("username" => "jimbo", "password" => "123456"));
+        $user->logIn();
+        
         $flimmy = new Object("Flimmy", array("flimlevel" => 5));
         $flimmy->save();
         $this->assertEquals("user/jimbo", $flimmy->get('sm_owner'));
