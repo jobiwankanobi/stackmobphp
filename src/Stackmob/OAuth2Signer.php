@@ -1,6 +1,5 @@
 <?php
 namespace Stackmob;
-require '../../vendor/autoload.php';
 
 require_once("OAuth.php");
 /**
@@ -20,9 +19,6 @@ class OAuth2Signer {
     function __construct($accessToken, $macKey) {
         $this->_accessToken = $accessToken;
         $this->_macKey = $macKey;
-        $this->log = \Logger::getLogger(__CLASS__);
-        $this->log->debug("Access token: $accessToken");
-        $this->log->debug("Mac Key: $macKey");
     }
     
     // Private Methods
@@ -99,7 +95,6 @@ class OAuth2Signer {
         
         $base = $this->_createBaseString($ts, $nonce, $method, $path, $hostNoPort, $port);
         $mac = \base64_encode(\hash_hmac('sha1', $base, $this->_macKey, true));
-        $this->log->debug("HMAC: $mac");
         
         return 'Authorization:MAC id="' .  $this->_accessToken . '",ts="' . $ts . '",nonce="' . $nonce
         . '",mac="' . $mac . '"';
