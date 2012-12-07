@@ -6,6 +6,7 @@
 namespace Stackmob;
 include_once("Stackmob.php");
 include_once("OAuth.php");
+include_once("OAuth2Signer.php");
 
 class Rest {
 
@@ -19,7 +20,7 @@ class Rest {
     const OBJECT_PATH_PREFIX = '';
     const PUSH_PATH = 'https://push.stackmob.com';
     const USER_PATH = 'user';
-    const LOGIN_PATH = 'user/login';
+    const LOGIN_PATH = 'user/accessToken';
     const LOGOUT_PATH = 'user/logout';
     const SM_LOGIN_ACCESS_TOKEN = 'sm_access_token';
     const SM_LOGIN_MAC_KEY = 'sm_mac_key';
@@ -37,40 +38,24 @@ class Rest {
     protected $_count;
     protected $_oauthConsumer;
     protected $_apiUrl;
+    protected $_isSecure;
     protected $log;
-    
-    /**
-     * Used when you get new keys after login.
-     * 
-     * @param type $newKey
-     * @param type $newSecret
-     */
-    public static function switchKeys($newKey, $newSecret) {
-        Rest::$oldConsumerKey = Rest::$consumerKey;
-        Rest::$oldConsumerSecret = $est::$consumerSecret;
-        Rest::$consumerKey = $newKey;
-        Rest::$consumerSecret = $newSecret;
-        $this->_oauthConsumer = null;
-        $this->_oauthConsumer = new OAuthConsumer(Rest::$consumerKey, Rest::$consumerSecret, NULL);
-    }
-    
-    /**
-     * Used when going back to api keys.
-     */
-    public static function switchBackToOldKeys() {
-        Rest::$consumerKey = Rest::$oldConsumerKey;
-        Rest::$consumerSecret = Rest::$oldConsumerSecret;
-        $this->_oauthConsumer = null;
-        $this->_oauthConsumer = new OAuthConsumer(Rest::$consumerKey, Rest::$consumerSecret, NULL);
-    }
     
     public function __construct($apiUrl = null) {
                 $this->_apiUrl = $apiUrl ? $apiUrl : Rest::API_URL;
+                $this->_isSecure = Rest::startsWith($this->_apiUrl, "https");
 		$this->_oauthConsumer = new OAuthConsumer(Rest::$consumerKey, Rest::$consumerSecret, NULL);
                 $this->log = \Logger::getLogger(__CLASS__);
-		
+                $this->log->debug("Is Secure: " . $this->_isSecure);
+                $this->log->debug("apiUrl: " . $this->_apiUrl);
     }
         
+    
+    public static function startsWith($haystack, $needle)
+    {
+        $length = strlen($needle);
+        return (substr($haystack, 0, $length) === $needle);
+    }
         
    
     // Convenience Methods for Objects, Users, Push Notifications
@@ -268,7 +253,6 @@ class Rest {
     public function login($username,$password){
         if(isset($_SESSION[Rest::SM_LOGIN_ACCESS_TOKEN])) {
             session_destroy();
-            Rest::switchBackToOldKeys();
         }
         $path = Rest::LOGIN_PATH;
 
@@ -448,10 +432,11 @@ class Rest {
      */
     protected function loginRequest($path,$postData=array(),$headers=null){
         $params=NULL;
+        $postData['token_type'] = 'mac';    // So that it returns the right thing
         $endpoint = $this->_apiUrl.'/'.$path;
         $this->log->debug( "endpoint: " . $endpoint . "");
         $version = Rest::$DEVELOPMENT ? 0 : 1;
-        $curl = curl_init($url);  
+        $curl = curl_init($endpoint);  
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);  
         curl_setopt($curl, CURLOPT_FAILONERROR, true); 
         // Don't verify peer in developer mode
@@ -488,23 +473,18 @@ class Rest {
               $this->_response = $body;
               $this->_results = null;
 
-              // save cookie in session if received from login
-              if(strstr($header, "Set-Cookie: session_stackmob")) {
-                session_start();
-                $_SESSION[User::STACKMOB_LOGGED_IN_COOKIE] = $cookiefile;
-              }
-              
               $decoded = json_decode($body);
 
               if(is_object($decoded)){
                   $this->log->debug(print_r($decoded, true));
                   session_start();
                   $_SESSION[Rest::SM_LOGIN_ACCESS_TOKEN] = $decoded->access_token;
-                  $_SESSION[Rest::SM_LOGIN_MAC_KEY] = $decoded->mac_key;
+                  if(isset($decoded->mac_key))
+                    $_SESSION[Rest::SM_LOGIN_MAC_KEY] = $decoded->mac_key;
                   $_SESSION[Rest::SM_LOGIN_TOKEN_EXPIRES] = time() + $decoded->expires_in;
                   $_SESSION[Rest::SM_LOGIN_REFRESH_TOKEN] = $decoded->refresh_token;
-                  $_SESSION[Rest::SM_LOGIN_USERNAME] = $decoded->stackmob->user->username;
-                  Rest::switchKeys($_SESSION[Rest::SM_LOGIN_ACCESS_TOKEN], $_SESSION[Rest::SM_LOGIN_MAC_KEY]);
+                  $_SESSION[User::SM_LOGGED_IN_USER] = json_encode($decoded->stackmob->user);
+                  $_SESSION[User::SM_LOGGED_IN_USERNAME] = $decoded->stackmob->user->username;
               }
               curl_close($curl);  
 
@@ -632,28 +612,48 @@ class Rest {
 
 
         // Check if logged in and if session expired
-        $loggedIn = isset($_SESSION[Rest::SM_LOGIN_USERNAME]);
-        if($loggedIn) {
+        $loggedIn = isset($_SESSION[User::SM_LOGGED_IN_USERNAME]);
+        if($loggedIn) { //OAuth 2 request
+            $this->log->debug("Performing OAuth2 request.");
             if($this->isLoginSessionExpired()) {
                 session_destroy();
-                Rest::switchBackToOldKeys();
                 throw new LoginSessionExpiredException();
             }
+            // Perform OAuth2 request because logged in
+            
+            // Get Access Tokens from session
+            $accessToken = $_SESSION[Rest::SM_LOGIN_ACCESS_TOKEN];
+            $macKey = $_SESSION[Rest::SM_LOGIN_MAC_KEY];
+            
+            // Initialize OAuth2Signer
+            $signer = new OAuth2Signer($accessToken, $macKey);
+            
+            // Url with port
+            $urlWithPort = $this->_isSecure ? $this->_apiUrl . ':443' : $this->_apiUrl;
+            
+            // Get authorization string to include in request
+            $authorizationString = $signer->generateMAC($method, $urlWithPort, $path);
+            $this->log->debug("Authorization string: $authorizationString");
+            
+            // Send request
+            $response = $this->send_request(strtoupper($method), $endpoint, $authorizationString, $postData, $headers);
+            
+        } else {  // OAuth 1 request
+            // Setup OAuth request - Use NULL for OAuthToken parameter
+            $request = OAuthRequest::from_consumer_and_token($this->_oauthConsumer, NULL, $method, $endpoint, $params);
+
+            // Sign the constructed OAuth request using HMAC-SHA1 - Use NULL for OAuthToken parameter
+            $request->sign_request(new OAuthSignatureMethod_HMAC_SHA1(), $this->_oauthConsumer, NULL);
+
+            // Extract OAuth header from OAuth request object and keep it handy in a variable
+            $oauth_header = $request->to_header();
+
+            $this->log->debug( "request:".print_r($request, true)."");
+
+
+            $response = $this->send_request($request->get_normalized_http_method(), $endpoint, $oauth_header, $postData, $headers);
+
         }
-        // Setup OAuth request - Use NULL for OAuthToken parameter
-        $request = OAuthRequest::from_consumer_and_token($this->_oauthConsumer, NULL, $method, $endpoint, $params);
-
-        // Sign the constructed OAuth request using HMAC-SHA1 - Use NULL for OAuthToken parameter
-        $request->sign_request(new OAuthSignatureMethod_HMAC_SHA1(), $this->_oauthConsumer, NULL);
-
-        // Extract OAuth header from OAuth request object and keep it handy in a variable
-        $oauth_header = $request->to_header();
-
-        $this->log->debug( "request:".print_r($request, true)."");
-
-        
-        $response = $this->send_request($request->get_normalized_http_method(), $endpoint, $oauth_header, $postData, $headers);
-
         $this->log->debug( "response:" . print_r($response, true) . "");
 
         return $response;
