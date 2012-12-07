@@ -5,3 +5,4 @@ src/Stackmob/sm.log
 /composer.phar
 vendor/
 index.php
+tests/Stackmob/sm.log
