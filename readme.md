@@ -75,6 +75,9 @@ The remaining classes are meant to provide a more declaritive way to work with O
 
 We'll try to also mimic stackmob's documentation structure and note APIs which have not been implemented.
 
+## Below this point Documentation is incorrect...for now
+
+
 ## Objects
 
 ### Stackmob\\Object
