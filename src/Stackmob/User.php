@@ -8,7 +8,8 @@ include_once("Stackmob.php");
 class User extends Object {
 
     // Class ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-    
+    const SM_LOGGED_IN_USER = "sm_logged_in_user";
+    const SM_LOGGED_IN_USERNAME = "sm_logged_in_username";
     /**
      * @var User
      */
@@ -23,8 +24,8 @@ class User extends Object {
             return User::$_current;
         }else{
             session_start();
-            if(!empty($_SESSION[Rest::SM_LOGIN_ACCESS_TOKEN])){
-                $attributes = json_decode($_SESSION[Rest::SM_LOGIN_ACCESS_TOKEN]);
+            if(!empty($_SESSION[User::SM_LOGGED_IN_USER])){
+                $attributes = json_decode($_SESSION[User::SM_LOGGED_IN_USER]);
                 User::$_current = new User($attributes);
                 return User::$_current;
             }else{
