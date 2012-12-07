@@ -77,7 +77,7 @@ We'll try to also mimic stackmob's documentation structure and note APIs which h
 
 ## Below this point Documentation is incorrect...for now
 
-Refer to _tests_ for things that are working and how to use them.
+Refer to (https://github.com/jobiwankanobi/stackmobphp/tree/master/tests) for things that are working and how to use them.
 
 
 ## Objects
