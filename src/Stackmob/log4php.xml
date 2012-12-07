@@ -10,6 +10,6 @@
     <appender name="default" class="LoggerAppenderConsole" />
     <root>
         <level value="DEBUG" />
-        <appender_ref ref="default" />
+        <appender_ref ref="myFileAppender" />
     </root>
 </configuration>
