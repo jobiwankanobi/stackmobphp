@@ -55,6 +55,17 @@ If done outside a Stackmob namespaced file, you'll need the namespace:
     \Stackmob\Rest::$DEVELOPMENT = true;	// change to false for production
 ````
 
+## Testing
+
+Tests should be done as followed
+
+````
+> cd tests/Stackmob
+> ../../vendor/bin/phpunit --stderr UserTest.php
+> #view logs
+> vim sm.log
+````
+
 ## Simple usage
 
 The simplest way to use the library is just use Rest.php. It provides methods to get, post and put using the Stackmob REST
