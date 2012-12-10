@@ -25,7 +25,7 @@ class Query extends Object {
      * @param type $pk
      */
     public function __construct($objectClass, $pk = null){
-        $this->log = $this->setUpLog();
+        $this->log = \Logger::getLogger(__CLASS__);
 
         $this->objectClass = $objectClass;
         $this->_pk = $pk ? $pk : strtolower($objectClass) . '_id';
@@ -34,10 +34,6 @@ class Query extends Object {
 
     }
  
-   protected function setUpLog() {
-        $this->log = \Log::factory('file', 'tg.log', 'TEST');
-    }
-
     /**
      * https://developer.stackmob.com/sdks/rest/api#a-equality_query
      * 
