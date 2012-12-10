@@ -6,3 +6,4 @@ src/Stackmob/sm.log
 vendor/
 index.php
 tests/Stackmob/sm.log
+.idea
