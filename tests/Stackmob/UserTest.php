@@ -12,12 +12,19 @@ namespace Stackmob;
 include_once(dirname(__FILE__) . "/../../src/Stackmob/Stackmob.php");
 
 class UserTest extends \PHPUnit_Framework_TestCase {
-    
+   
+   protected $log;
 
-   public function testSignupUserStatic() {
+   public function setUp() {
+       parent::setUp();
         Rest::$consumerKey = "a368126f-4b41-4e54-ac45-394df81fe404";
         Rest::$consumerSecret = "1dd779df-ab0e-446b-8bdb-52641ef97df4";
-
+        $this->log = \Logger::getLogger(__CLASS__);
+   }
+   
+   
+   public function testSignupUserStatic() {
+       $this->log->debug("testSignupUserStatic");
         $user = User::signUpUser("jimbo", "123456");
         $user->set("age", 25);
         $this->assertEquals("jimbo", $user->getUsername());
@@ -27,9 +34,7 @@ class UserTest extends \PHPUnit_Framework_TestCase {
     }
 
      public function testLoginUserSuccess() {
-        Rest::$consumerKey = "a368126f-4b41-4e54-ac45-394df81fe404";
-        Rest::$consumerSecret = "1dd779df-ab0e-446b-8bdb-52641ef97df4";
-
+       $this->log->debug("testLoginUserSuccess");
         $user = new User(array("username" => "jimbo", "password" => "123456"));
         $user->logIn();
         $this->assertArrayHasKey("lastmoddate", $user->attributes());
@@ -38,9 +43,8 @@ class UserTest extends \PHPUnit_Framework_TestCase {
     }  
 
     public function testLoginCreateObjectOwner() {
-        Rest::$consumerKey = "a368126f-4b41-4e54-ac45-394df81fe404";
-        Rest::$consumerSecret = "1dd779df-ab0e-446b-8bdb-52641ef97df4";
-        $user = new User(array("username" => "jimbo", "password" => "123456"));
+         $this->log->debug("testLoginCreateObjectOwner");
+          $user = new User(array("username" => "jimbo", "password" => "123456"));
         $user->logIn();
         
         $flimmy = new Object("Flimmy", array("flimlevel" => 5));
@@ -50,6 +54,7 @@ class UserTest extends \PHPUnit_Framework_TestCase {
 
     
     public function testDeleteUser() {
+         $this->log->debug("testDeleteUser");
         $user = new User(array("username" => "jimbo"));
         $user->delete();
         try {
@@ -63,6 +68,7 @@ class UserTest extends \PHPUnit_Framework_TestCase {
      * @expectedException \Stackmob\StackmobException
      */
     public function testLoginFailedException() {
+         $this->log->debug("testLoginFailedException");
 
         $user = new User();
         $user->logIn("jimbo", "23423423423");   
@@ -70,25 +76,25 @@ class UserTest extends \PHPUnit_Framework_TestCase {
 
 
     
- 
-    
-    public function testFetchUser() {
-        $user = new User(array("username" => "jimbo"));
-        $user->fetch();
-        $this->assertArrayHasKey("createddate", $user->attributes());
-        $this->assertArrayHasKey("lastmoddate", $user->attributes());
-        $this->assertArrayHasKey("sm_owner", $user->attributes());
-    }
-
-    
     public function testSignupUserNonStatic() {
+        $this->log->debug("testSignupUserNonStatic");
         $user = new User(array("username" => "jimbo", "password" => "123456"));
         $user->signUp();
         $this->assertArrayHasKey("createddate", $user->attributes());
         $this->assertArrayHasKey("lastmoddate", $user->attributes());
         $this->assertArrayHasKey("sm_owner", $user->attributes());
-        $user->delete();
     }
+    
+   public function testFetchUser() {
+            $this->log->debug("testFetchUser");
+         $user = new User(array("username" => "jimbo"));
+        $user->fetch();
+        $this->assertArrayHasKey("createddate", $user->attributes());
+        $this->assertArrayHasKey("lastmoddate", $user->attributes());
+        $this->assertArrayHasKey("sm_owner", $user->attributes());
+        $user->delete();    // clean up
+    }
+
 }
 
 ?>
