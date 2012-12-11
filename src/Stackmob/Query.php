@@ -45,7 +45,7 @@ class Query extends Object {
     }
 	
     /**
-     * https://developer.stackmob.com/sdks/rest/api#a-inequality_queries___________________
+     * https://developer.stackmob.com/sdks/rest/api#a-inequality_queries____________________null_
      * 
      * @param type $key
      * @param type $value
@@ -55,13 +55,23 @@ class Query extends Object {
     }
 
     /**
-     * https://developer.stackmob.com/sdks/rest/api#a-inequality_queries___________________
+     * https://developer.stackmob.com/sdks/rest/api#a-inequality_queries____________________null_
      * 
      * @param type $key
      * @param type $value
      */
     public function greaterThan($key, $value) { 
             $this->setWhereKeyHashValue($key, 'gt', $value);
+    }
+
+    /**
+     * https://developer.stackmob.com/sdks/rest/api#a-inequality_queries____________________null_
+     * 
+     * @param type $key
+     * @param type $value
+     */
+    public function lessThan($key, $value) { 
+            $this->setWhereKeyHashValue($key, 'lt', $value);
     }
 
     /**
