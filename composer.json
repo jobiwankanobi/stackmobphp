@@ -1,7 +1,7 @@
 {
     "name": "jobiwankanobi/stackmobphp",
     "require": {
-        "php": ">=5.3.0",
+        "php": ">=5.4.0",
 	"apache/log4php": "2.3.0"
     },
     "require-dev": {
