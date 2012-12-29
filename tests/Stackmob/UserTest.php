@@ -20,6 +20,7 @@ class UserTest extends \PHPUnit_Framework_TestCase {
         Rest::$consumerKey = "a368126f-4b41-4e54-ac45-394df81fe404";
         Rest::$consumerSecret = "1dd779df-ab0e-446b-8bdb-52641ef97df4";
         $this->log = \Logger::getLogger(__CLASS__);
+        $this->log->debug("TEST: PHPVERSION" . PHP_VERSION);
    }
    
    
@@ -44,12 +45,13 @@ class UserTest extends \PHPUnit_Framework_TestCase {
 
     public function testLoginCreateObjectOwner() {
          $this->log->debug("testLoginCreateObjectOwner");
-          $user = new User(array("username" => "jimbo", "password" => "123456"));
+        $user = new User(array("username" => "jimbo", "password" => "123456"));
         $user->logIn();
         
         $flimmy = new Object("Flimmy", array("flimlevel" => 5));
         $flimmy->save();
         $this->assertEquals("user/jimbo", $flimmy->get('sm_owner'));
+        $flimmy->delete();
     }
 
     
@@ -60,7 +62,7 @@ class UserTest extends \PHPUnit_Framework_TestCase {
         try {
             $user->fetch();
         } catch(\Stackmob\StackmobException $e) {
-            $this->assertEquals($e->getMessage(), "The requested URL returned error: 404");
+            $this->assertEquals('The requested URL returned error: 404 Not Found', $e->getMessage());
         }
     }
     
