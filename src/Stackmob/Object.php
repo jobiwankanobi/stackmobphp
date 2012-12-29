@@ -42,7 +42,7 @@ class Object {
         }
     }
     protected function setUpLog() {
-        $this->log = \Log::factory('file', 'tg.log', 'TEST');
+        $this->log = \Logger::getLogger(__CLASS__);
     }
 
     /**
@@ -54,7 +54,7 @@ class Object {
      * @param $pk
      */
     public function __construct($objectClass,$attributes=array(), $pk=null){
-//        $this->setUpLog();
+        $this->setUpLog();
 
         $this->objectClass = $objectClass;
         $this->_pk = $pk ? $pk : strtolower($objectClass) . '_id';
