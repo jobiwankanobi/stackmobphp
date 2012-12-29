@@ -101,15 +101,31 @@ class Rest {
         return $this->post($path,$data);
     }
 
-    // New object: curl -svx localhost:8001 -H "Accept: application/vnd.stackmob+json; version=0" -d '{"score_id":"1", "my_score":5, "worries_score" : 6}' http://api.mob1.stackmob.com/user/jimbo/score
-    // Existing object: curl -svx localhost:8001 -H "Accept: application/vnd.stackmob+json; version=0" -d '{"score_id":"5185B00C-CB03-449B-BD6D-2F466E24DC52"}' -X PUT http://api.mob1.stackmob.com/user/jimbo/score
-    
+    /**
+     * 
+     * https://developer.stackmob.com/sdks/rest/api#a-post_-_creating_and_appending_related_objects
+     * 
+     * @param type $objectClass
+     * @param type $id
+     * @param type $relateClass
+     * @param type $data
+     * @return type
+     */
     protected function relateAndCreate($objectClass, $id, $relateClass, $data) {
         $path = $this->objectPath($objectClass, $id);
         $path = "$path/$relateClass";
         return $this->post($path,$data);
     }
-    
+    /**
+     * 
+     * https://developer.stackmob.com/sdks/rest/api#a-put_-_appending_values_to_an_array_or_add_an_existing_object_to_a_relationship
+     * 
+     * @param type $objectClass
+     * @param type $id
+     * @param type $relateClass
+     * @param type $relateId
+     * @return type
+     */
     protected function relate($objectClass, $id, $relateClass, $relateId) {
         $path = $this->objectPath($objectClass, $id);
         $path = "$path/$relateClass";
@@ -251,8 +267,11 @@ class Rest {
      * @return array
      */
     public function login($username,$password){
-        if(isset($_SESSION[Rest::SM_LOGIN_ACCESS_TOKEN])) {
+        if(session_status() == PHP_SESSION_ACTIVE) {
+            $this->log->debug("LOGIN - Destroying session....");
             session_destroy();
+        } else {
+            $this->log->debug("No session variable...");
         }
         $path = Rest::LOGIN_PATH;
 
@@ -523,7 +542,7 @@ class Rest {
             break;
           case 'POST':
                       curl_setopt($curl, CURLOPT_HTTPHEADER, array(
-                              'Content-Type: application/vnd.stackmob+json;',
+                                      'Content-Type: application/json',
                                       'Content-Length: '.strlen(json_encode($postData)),
                                       "Accept: application/vnd.stackmob+json; version=$version",
                                       "X-StackMob-API-Key: " . Rest::$consumerKey,
@@ -534,7 +553,8 @@ class Rest {
             curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($postData));
             break;
           case 'PUT':
-                              curl_setopt($curl, CURLOPT_HTTPHEADER, array("Content-Type: application/vnd.stackmob+json;",
+                              curl_setopt($curl, CURLOPT_HTTPHEADER, array(
+                                      'Content-Type: application/json',
                                       'Content-Length: '.strlen(json_encode($postData)),
                                       "Accept: application/vnd.stackmob+json; version=$version",
                                       "X-StackMob-API-Key: " . Rest::$consumerKey,
@@ -545,7 +565,8 @@ class Rest {
                               curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($postData));
                               break;
           case 'DELETE':
-                              curl_setopt($curl, CURLOPT_HTTPHEADER, array("Content-Type: application/vnd.stackmob+json;",
+                              curl_setopt($curl, CURLOPT_HTTPHEADER, array(
+                                      "Content-Type: application/json",
                                       'Content-Length: 0',
                                       "Accept: application/vnd.stackmob+json; version=$version",
                                       "X-StackMob-API-Key: " . Rest::$consumerKey,
