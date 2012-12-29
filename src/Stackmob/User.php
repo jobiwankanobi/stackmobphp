@@ -132,9 +132,13 @@ class User extends Object {
      * 
      */
     public function logIn($username = null, $password = null){
-        $ret = false;
-        if(isset($_SESSION[Rest::SM_LOGIN_ACCESS_TOKEN]))
+        $this->log->debug("Logging in....");
+        if(session_status() == PHP_SESSION_ACTIVE) {
+            $this->log->debug("LOGIN - Destroying session....");
             session_destroy();
+        } else {
+            $this->log->debug("No session variable...");
+        }
         $username = $username ? $username : $this->getUsername();
         $password = $password ? $password : $this->get('password');
 //        $this->log->debug("Logging in user $username...");
