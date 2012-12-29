@@ -87,7 +87,7 @@ class OAuth2Signer {
     function generateMAC($method, $fullHost, $path) {
         $path = '/' . $path;
         $hostWithPort = preg_replace('/^http[s]?:\/\//', "", $fullHost);
-        $splitHost = split(':', $hostWithPort);
+        $splitHost = preg_split('/:/', $hostWithPort);
         $hostNoPort = count($splitHost) > 1 ? $splitHost[0] : $hostWithPort;
         $port = count($splitHost) > 1 ? $splitHost[1] : 80;  //use default port 80 if http.  If you're using https then this should be 443
         $ts = \Stackmob\OAuthRequest::generate_timestamp();
