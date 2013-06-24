@@ -8,4 +8,3 @@ class Stackmob {
      */
     protected static $_restClient;
 }
-\Logger::configure(__DIR__ . '/log4php.xml');
