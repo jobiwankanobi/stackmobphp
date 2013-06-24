@@ -3,7 +3,6 @@
  * User
  */
 namespace Stackmob;
-include_once("Stackmob.php");
 
 class User extends Object {
 

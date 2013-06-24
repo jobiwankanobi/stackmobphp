@@ -19,7 +19,7 @@
     },
     "autoload": {
         "psr-0": {
-            "Stackmob": "src/"
+            "Stackmob": "src/Stackmob/"
         }
     }
 }

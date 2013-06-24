@@ -4,9 +4,11 @@
  * @version 0.1
  */
 namespace Stackmob;
-include_once("Stackmob.php");
-include_once("OAuth.php");
-include_once("OAuth2Signer.php");
+
+use Stackmob\OAuthConsumer;
+use Stackmob\OAuth2Signer;
+use Stackmob\StackmobException;
+use Stackmob\LoginSessionExpiredException;
 
 class Rest {
 

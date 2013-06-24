@@ -1,7 +1,6 @@
 <?php
 namespace Stackmob;
 
-require_once("OAuth.php");
 /**
  * Class for signing requests after logging in
  *
