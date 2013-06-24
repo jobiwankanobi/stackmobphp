@@ -1,12 +1,25 @@
 {
-    "name": "jobiwankanobi/stackmobphp",
+    "name": "jobiwankanobi/stackmob",
+    "description": "Simple PHP API for Stackmob based on sparse project from spacious/sparse",
+    "license": "MIT",
+    "authors": [
+    {
+        "name": "James OBrien"
+    }
+    ],
+
     "require": {
         "php": ">=5.4.0",
-	"apache/log4php": "2.3.0"
+        "apache/log4php": "2.3.0"
     },
     "require-dev": {
-	"phpunit/phpunit": "3.7.5",
+        "phpunit/phpunit": "3.7.5",
         "phpunit/php-invoker": ">=1.1.0",
-	"phpunit/php-code-coverage": "1.2.6"
+        "phpunit/php-code-coverage": "1.2.6"
+    },
+    "autoload": {
+        "psr-0": {
+            "Stackmob": "src/"
+        }
     }
 }
