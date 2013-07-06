@@ -522,15 +522,35 @@ class Rest {
         else
             return false;
     }
+
+    function processPostData($postData)
+    {
+        if (is_array($postData))
+        {
+            foreach ($postData as $key => $value)
+            {
+                if (is_array($value) && isset($value['binary']))
+                {
+                    $content_type = empty($value['content-type']) ? 'text/html' : $value['content-type'];
+                    $filename = empty($value['filename']) ? 'file.html' : $value['filename'];
+                    $postData[$key] = "Content-Type: {$content_type}\nContent-Disposition: attachment; filename={$filename}\nContent-Transfer-Encoding: base64\n\n".base64_encode($value['binary']);
+                }
+            }
+        }
+
+        return $postData;
+    }
     
     function send_request($http_method, $url, $auth_header=null, $postData=null, $headers=null) {  
         $version = Rest::$DEVELOPMENT ? 0 : 1;
         $curl = curl_init($url);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($curl, CURLOPT_FAILONERROR, true);
+        // curl_setopt($curl, CURLOPT_FAILONERROR, true);
         // Don't verify peer in developer mode
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, !Rest::$DEVELOPMENT);
-        curl_setopt($curl, CURLOPT_HEADER, true);
+        curl_setopt($curl, CURLOPT_HEADER, false);
+
+        $postData = $this->processPostData($postData);
 
         switch($http_method) {
           case 'GET':
@@ -578,17 +598,18 @@ class Rest {
             break;
         }
 
-        $this->log->debug( $curl."\n\n");
-
         $response = curl_exec($curl);
-        $statusCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $err = curl_errno ( $curl );
+        $errmsg = curl_error ( $curl );
+        $header = curl_getinfo ( $curl );
+        $statusCode = curl_getinfo ( $curl, CURLINFO_HTTP_CODE );
+        curl_close($curl);
+
         $this->log->debug("Response: $response");
         $this->log->debug("Status code: $statusCode");
-        if (!$response && $statusCode !== 200) {
-             $response = curl_error($curl);
-             curl_close($curl);
-
-             throw new StackmobException($response, $statusCode);
+        if ($statusCode >= 400 && $statusCode !== 0) {
+            $this->log->debug("Errorno: $err");
+            throw new StackmobException($response, $statusCode);
         } else {
 
             list($header, $body) = explode("\r\n\r\n", $response, 2);
@@ -605,8 +626,6 @@ class Rest {
             if(is_object($decoded) || is_array($decoded) ){
                 $this->_results = $decoded;
             }
-            curl_close($curl);
-
             return $this->_results;
         }
     }
