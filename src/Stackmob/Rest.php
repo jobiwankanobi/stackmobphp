@@ -611,17 +611,11 @@ class Rest {
             $this->log->debug("Errorno: $err");
             throw new StackmobException($response, $statusCode);
         } else {
-
-            list($header, $body) = explode("\r\n\r\n", $response, 2);
-            $this->log->debug("Header: $header");
-            $this->log->debug("Body: $body");
-            $this->_responseHeaders = $this->http_parse_headers($header);
-
             $this->_statusCode = $statusCode;
-            $this->_response = $body;
+            $this->_response = $response;
             $this->_results = null;
 
-            $decoded = json_decode($body);
+            $decoded = json_decode($response);
 
             if(is_object($decoded) || is_array($decoded) ){
                 $this->_results = $decoded;
