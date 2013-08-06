@@ -187,12 +187,16 @@ class Rest {
      *
      * @return array
      */
-    public function push($channels,$data,$params=array()){
+    public function push($payload,$users=array()){
 
-        $path = Rest::PUSH_PATH;
+        $this->_apiUrl = Rest::PUSH_PATH;
+        $path = 'notifications';
 
-        $params['channels'] = $channels;
-        $params['data'] = $data;
+        $params['payload'] = $payload;
+        if (!empty($users))
+        {
+            $params['users'] = $users;
+        }
 
         return $this->post($path,$params);
     }
@@ -549,6 +553,17 @@ class Rest {
         // Don't verify peer in developer mode
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, !Rest::$DEVELOPMENT);
         curl_setopt($curl, CURLOPT_HEADER, false);
+
+        if (is_array($postData))
+        {
+            $this->log->debug("Request Body: ".json_encode(array_map(function($value){
+                if (is_array($value) && isset($value['binary']))
+                {
+                    return '[binary]';
+                }
+                return $value;
+            }, $postData)));
+        }
 
         $postData = $this->processPostData($postData);
 
