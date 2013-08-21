@@ -10,8 +10,8 @@ use Stackmob\OAuth2Signer;
 use Stackmob\StackmobException;
 use Stackmob\LoginSessionExpiredException;
 
-use ProductGram\Security\OAuth\OAuthConsumer;
-use ProductGram\Security\OAuth\OAuthSignatureMethodHMACSHA1;
+use OAuth\OAuthConsumer;
+use OAuth\OAuthSignatureMethodHMACSHA1;
 
 class Rest {
 
