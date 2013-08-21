@@ -5,6 +5,8 @@
 
 namespace Stackmob;
 
+use Stackmob\Rest;
+
 class CustomCode extends Stackmob {
 
     const API_PATH = 'http://api.mob1.stackmob.com/';

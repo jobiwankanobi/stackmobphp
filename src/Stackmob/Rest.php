@@ -8,6 +8,7 @@ namespace Stackmob;
 use Stackmob\OAuth2Signer;
 use Stackmob\StackmobException;
 use Stackmob\LoginSessionExpiredException;
+use Stackmob\DummyLogger;
 
 use OAuth\OAuthConsumer;
 use OAuth\OAuthSignatureMethodHMACSHA1;
@@ -698,7 +699,7 @@ class Rest {
             $request = OAuthRequest::from_consumer_and_token($this->_oauthConsumer, NULL, $method, $endpoint, $params);
 
             // Sign the constructed OAuth request using HMAC-SHA1 - Use NULL for OAuthToken parameter
-            $request->sign_request(new OAuthSignatureMethod_HMAC_SHA1(), $this->_oauthConsumer, NULL);
+            $request->sign_request(new OAuthSignatureMethodHMACSHA1(), $this->_oauthConsumer, NULL);
 
             // Extract OAuth header from OAuth request object and keep it handy in a variable
             $oauth_header = $request->to_header();

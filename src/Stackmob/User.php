@@ -4,6 +4,9 @@
  */
 namespace Stackmob;
 
+use Stackmob\User;
+use Stackmob\Rest;
+
 class User extends Object {
 
     // Class ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -53,7 +56,7 @@ class User extends Object {
      */
     public static function signUpUser($username, $password, $attributes=array()){
         if(!Object::$_restClient){
-            Object::$_restClient = new \Stackmob\Rest();
+            Object::$_restClient = new Rest();
         }
 
         $user = null;

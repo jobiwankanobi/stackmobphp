@@ -8,6 +8,11 @@
 
 namespace Stackmob;
 
+use Stackmob\DummyLogger;
+use Stackmob\User;
+use Stackmob\Rest;
+use Stackmob\Object;
+
 class Query extends Object {
 
     protected $_pk = null;
@@ -30,7 +35,7 @@ class Query extends Object {
         $this->objectClass = $objectClass;
         $this->_pk = $pk ? $pk : strtolower($objectClass) . '_id';
 
-        $this->_rest = new \Stackmob\Rest();
+        $this->_rest = new Rest();
 
     }
  
@@ -203,9 +208,9 @@ class Query extends Object {
                 }
 
                 if($this->objectClass == Object::USER_OBJECT_CLASS){
-                    $objects[$index] = new \Stackmob\User($attributes);
+                    $objects[$index] = new User($attributes);
                 }else{
-                    $objects[$index] = new \Stackmob\Object($this->objectClass,$attributes);
+                    $objects[$index] = new Object($this->objectClass,$attributes);
                 }
             }
         }

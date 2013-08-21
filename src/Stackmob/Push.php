@@ -4,6 +4,8 @@
  */
 namespace Stackmob;
 
+use Stackmob\Rest;
+
 class Push {
 
     /**
@@ -21,7 +23,7 @@ class Push {
     public static function send($data, $users = array()){
 
         if(!Push::$_restClient){
-            Push::$_restClient = new \Stackmob\Rest();
+            Push::$_restClient = new Rest();
         }
 
         return Push::$_restClient->push($data, $users);

@@ -8,6 +8,10 @@
 
 namespace Stackmob;
 
+use Stackmob\DummyLogger;
+use Stackmob\Rest;
+use Stackmob\Object;
+
 class Object {
     //put your code here
     
@@ -72,10 +76,10 @@ class Object {
         $this->attributes($attributes);
 
         // TODO: Fix the use of many rest clients
-        $this->_rest = new \Stackmob\Rest();
+        $this->_rest = new Rest();
 
         if(!Object::$_restClient){
-            Object::$_restClient = new \Stackmob\Rest();
+            Object::$_restClient = new Rest();
         }
 
         $this->initialize();
