@@ -1,7 +1,6 @@
 <?php
 
 include("Stackmob.php");
-include("OAuth.php");
 include("Rest.php");
 include("Object.php");
 include("Push.php");

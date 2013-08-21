@@ -1,6 +1,8 @@
 <?php
 namespace Stackmob;
 
+use ProductGram\Security\OAuth\OAuthRequest;
+
 /**
  * Class for signing requests after logging in
  *
@@ -89,7 +91,7 @@ class OAuth2Signer {
         $splitHost = preg_split('/:/', $hostWithPort);
         $hostNoPort = count($splitHost) > 1 ? $splitHost[0] : $hostWithPort;
         $port = count($splitHost) > 1 ? $splitHost[1] : 80;  //use default port 80 if http.  If you're using https then this should be 443
-        $ts = \Stackmob\OAuthRequest::generate_timestamp();
+        $ts = OAuthRequest::generate_timestamp();
         $nonce = substr(number_format(hexdec(sha1(microtime(true).mt_rand(10000,90000))),0,'',''), 0, 17);
         
         $base = $this->_createBaseString($ts, $nonce, $method, $path, $hostNoPort, $port);
