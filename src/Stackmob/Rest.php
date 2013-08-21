@@ -11,6 +11,7 @@ use Stackmob\LoginSessionExpiredException;
 use Stackmob\DummyLogger;
 
 use OAuth\OAuthConsumer;
+use OAuth\OAuthRequest;
 use OAuth\OAuthSignatureMethodHMACSHA1;
 
 class Rest {
