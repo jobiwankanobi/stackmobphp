@@ -5,7 +5,6 @@
  */
 namespace Stackmob;
 
-use Stackmob\OAuthConsumer;
 use Stackmob\OAuth2Signer;
 use Stackmob\StackmobException;
 use Stackmob\LoginSessionExpiredException;
