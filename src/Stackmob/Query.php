@@ -25,7 +25,7 @@ class Query extends Object {
      * @param type $pk
      */
     public function __construct($objectClass, $pk = null){
-        $this->log = \Logger::getLogger(__CLASS__);
+        $this->log = new DummyLogger();
 
         $this->objectClass = $objectClass;
         $this->_pk = $pk ? $pk : strtolower($objectClass) . '_id';

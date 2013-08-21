@@ -41,8 +41,17 @@ class Object {
             $obj->save();
         }
     }
-    protected function setUpLog() {
-        $this->log = \Logger::getLogger(__CLASS__);
+
+    /**
+    * Public, so its inherited.
+    */
+    public function setUpLog($logger) 
+    {
+        if (empty($logger)) {
+            return;
+        }
+
+        $this->log = $logger;
     }
 
     /**
@@ -54,7 +63,9 @@ class Object {
      * @param $pk
      */
     public function __construct($objectClass,$attributes=array(), $pk=null){
-        $this->setUpLog();
+
+        // just to make sure the logging does not fails if used before setUpLog
+        $this->log = new DummyLogger();
 
         $this->objectClass = $objectClass;
         $this->_pk = $pk ? $pk : strtolower($objectClass) . '_id';
