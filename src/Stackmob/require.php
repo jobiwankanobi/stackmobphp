@@ -1,5 +1,4 @@
 <?php
-// \Logger::configure(__DIR__ . '/log4php.xml');
 
 include("Stackmob.php");
 include("OAuth.php");

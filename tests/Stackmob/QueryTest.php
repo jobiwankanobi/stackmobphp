@@ -18,7 +18,7 @@ class QueryTest extends \PHPUnit_Framework_TestCase {
        parent::setUp();
         Rest::$consumerKey = "a368126f-4b41-4e54-ac45-394df81fe404";
         Rest::$consumerSecret = "1dd779df-ab0e-446b-8bdb-52641ef97df4";
-        $this->log = \Logger::getLogger(__CLASS__);
+        $this->log = new DummyLogger();
         $user = new User(array("username" => "jimbo", "password" => "123456", "age" => 25));
         $user->signUp();
         
