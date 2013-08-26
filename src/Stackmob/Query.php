@@ -198,8 +198,12 @@ class Query extends Object {
         if($this->_rest->statusCode() == 200){
             $this->_count = $this->_rest->count();
             $indexKey = $this->indexKey;
-            if(!is_array($found))
-                return array();
+
+            // if the result is a single object (for example, in the case of listapi
+            // query), it's converted to an array before being processed
+            if(!is_array($found)) {
+                $found = array($found);
+            }
             foreach($found as $attributes){
                 if($indexKey){
                     $index = isset($attributes->$indexKey) ? $attributes->$indexKey : count($objects);
