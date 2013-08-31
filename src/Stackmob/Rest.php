@@ -9,18 +9,14 @@ use Stackmob\OAuth2Signer;
 use Stackmob\StackmobException;
 use Stackmob\LoginSessionExpiredException;
 use Stackmob\DummyLogger;
+use Stackmob\Configuration;
 
 use OAuth\OAuthConsumer;
 use OAuth\OAuthRequest;
 use OAuth\OAuthSignatureMethodHMACSHA1;
 
-class Rest {
-
-    public static $consumerKey;
-    public static $consumerSecret;
-    public static $DEVELOPMENT = true; 	// default development, false is production
-    private static $oldConsumerKey;
-    private static $oldConsumerSecret;
+class Rest 
+{
     const API_URL = 'https://api.stackmob.com';
     const USER_AGENT = 'StackmobRest/0.1';
     const OBJECT_PATH_PREFIX = '';
@@ -46,11 +42,12 @@ class Rest {
     protected $_apiUrl;
     protected $_isSecure;
     protected $log;
+    protected $environment;
     
     public function __construct($apiUrl = null) {
         $this->_apiUrl = $apiUrl ? $apiUrl : Rest::API_URL;
         $this->_isSecure = Rest::startsWith($this->_apiUrl, "https");
-        $this->_oauthConsumer = new OAuthConsumer(Rest::$consumerKey, Rest::$consumerSecret, NULL);
+        $this->_oauthConsumer = new OAuthConsumer(Configuration::getKey(), Configuration::getSecret(), NULL);
 
         // just to make sure the logging does not fails if used before setUpLog
         $this->log = new DummyLogger();
@@ -461,6 +458,15 @@ class Rest {
         return $dump;
     }
 
+    protected function getVersion()
+    {
+        return ($this->environment === 'prod') ? 1 : 0;
+    }
+
+    protected function isProductionEnvironment()
+    {
+        return ($this->environment === 'prod');
+    }
 
      /**
      * 
@@ -471,7 +477,7 @@ class Rest {
      * @return type
      */
     protected function loginRequest($path,$postData=array(),$headers=null){
-        $version = Rest::$DEVELOPMENT ? 0 : 1;
+        $version = $this->getVersion();
         $postData['token_type'] = 'mac';    // So that it returns the right thing
         $endpoint = $this->_apiUrl.'/'.$path;
         $this->log->debug( "endpoint: " . $endpoint . "");
@@ -479,13 +485,13 @@ class Rest {
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_FAILONERROR, true);
         // Don't verify peer in developer mode
-        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, !Rest::$DEVELOPMENT);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, $this->isProductionEnvironment());
         curl_setopt($curl, CURLOPT_HEADER, true);
         curl_setopt($curl, CURLOPT_HTTPHEADER, array(
                 'Content-Type: application/x-www-form-urlencoded;',
                         'Content-Length: '.strlen(http_build_query($postData)),
                         "Accept: application/vnd.stackmob+json; version=$version",
-                        "X-StackMob-API-Key: " . Rest::$consumerKey,
+                        "X-StackMob-API-Key: " . Configuration::getKey(),
                         "X-Stackmob-User-Agent: stackmobphp 0.1"));
         curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'POST');
         curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($postData));
@@ -560,12 +566,12 @@ class Rest {
     }
     
     function send_request($http_method, $url, $auth_header=null, $postData=null, $headers=null) {  
-        $version = Rest::$DEVELOPMENT ? 0 : 1;
+        $version = $this->getVersion();
         $curl = curl_init($url);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         // curl_setopt($curl, CURLOPT_FAILONERROR, true);
         // Don't verify peer in developer mode
-        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, !Rest::$DEVELOPMENT);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, $this->isProductionEnvironment());
         curl_setopt($curl, CURLOPT_HEADER, false);
 
         if (is_array($postData))
@@ -586,7 +592,7 @@ class Rest {
             curl_setopt($curl, CURLOPT_HTTPHEADER, array("Content-Type: application/vnd.stackmob+json;",
                                       'Content-Length: 0',
                                       "Accept: application/vnd.stackmob+json; version=$version",
-                                      "X-StackMob-API-Key: " . Rest::$consumerKey,
+                                      "X-StackMob-API-Key: " . Configuration::getKey(),
                                       "X-Stackmob-User-Agent: stackmobphp 0.1",
                                       $headers,
                                       $auth_header));
@@ -596,7 +602,7 @@ class Rest {
                                       'Content-Type: application/json',
                                       'Content-Length: '.strlen(json_encode($postData)),
                                       "Accept: application/vnd.stackmob+json; version=$version",
-                                      "X-StackMob-API-Key: " . Rest::$consumerKey,
+                                      "X-StackMob-API-Key: " . Configuration::getKey(),
                                       "X-Stackmob-User-Agent: stackmobphp 0.1",
                                       $headers,
                                       $auth_header));
@@ -608,7 +614,7 @@ class Rest {
                                       'Content-Type: application/json',
                                       'Content-Length: '.strlen(json_encode($postData)),
                                       "Accept: application/vnd.stackmob+json; version=$version",
-                                      "X-StackMob-API-Key: " . Rest::$consumerKey,
+                                      "X-StackMob-API-Key: " . Configuration::getKey(),
                                       "X-Stackmob-User-Agent: stackmobphp 0.1",
                                       $headers,
                                       $auth_header));
@@ -620,7 +626,7 @@ class Rest {
                                       "Content-Type: application/json",
                                       'Content-Length: 0',
                                       "Accept: application/vnd.stackmob+json; version=$version",
-                                      "X-StackMob-API-Key: " . Rest::$consumerKey,
+                                      "X-StackMob-API-Key: " . Configuration::getKey(),
                                       "X-Stackmob-User-Agent: stackmobphp 0.1",
                                                                   $headers, $auth_header));
                               curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $http_method);
