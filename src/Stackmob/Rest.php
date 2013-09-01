@@ -448,11 +448,6 @@ class Rest
         return $dump;
     }
 
-    protected function getVersion()
-    {
-        return ($this->environment === 'prod') ? 1 : 0;
-    }
-
     protected function isProductionEnvironment()
     {
         return ($this->environment === 'prod');
@@ -467,7 +462,7 @@ class Rest
      * @return type
      */
     protected function loginRequest($path,$postData=array(),$headers=null){
-        $version = $this->getVersion();
+        $version = Configuration::getVersion();
         $postData['token_type'] = 'mac';    // So that it returns the right thing
         $endpoint = $this->_apiUrl.'/'.$path;
         $this->log->debug( "endpoint: " . $endpoint . "");
@@ -556,7 +551,7 @@ class Rest
     }
     
     function send_request($http_method, $url, $auth_header=null, $postData=null, $headers=null) {  
-        $version = $this->getVersion();
+        $version = Configuration::getVersion();
         $curl = curl_init($url);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         // curl_setopt($curl, CURLOPT_FAILONERROR, true);

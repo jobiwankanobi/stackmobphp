@@ -60,4 +60,9 @@ class Configuration
     {
         self::$environment = $environment;
     }
+
+    public static getVersion()
+    {
+        return (self::$environment === 'prod') ? 1 : 0;
+    }
 }
