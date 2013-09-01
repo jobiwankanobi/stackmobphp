@@ -8,9 +8,9 @@
 
 namespace Stackmob;
 
-use Stackmob\DummyLogger;
 use Stackmob\Rest;
 use Stackmob\Object;
+use Stackmob\Configuration;
 
 class Object {
     //put your code here
@@ -47,18 +47,6 @@ class Object {
     }
 
     /**
-    * Public, so its inherited.
-    */
-    public function setUpLog($logger) 
-    {
-        if (empty($logger)) {
-            return;
-        }
-
-        $this->log = $logger;
-    }
-
-    /**
      * Constructor
      * Creates a new model with defined attributes.
      *
@@ -69,7 +57,7 @@ class Object {
     public function __construct($objectClass,$attributes=array(), $pk=null){
 
         // just to make sure the logging does not fails if used before setUpLog
-        $this->log = new DummyLogger();
+        $this->log = Configuration::getLogger();
 
         $this->objectClass = $objectClass;
         $this->_pk = $pk ? $pk : strtolower($objectClass) . '_id';

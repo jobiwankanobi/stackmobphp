@@ -8,7 +8,7 @@
 
 namespace Stackmob;
 
-use Stackmob\DummyLogger;
+use Stackmob\Configuration;
 use Stackmob\User;
 use Stackmob\Rest;
 use Stackmob\Object;
@@ -30,7 +30,7 @@ class Query extends Object {
      * @param type $pk
      */
     public function __construct($objectClass, $pk = null){
-        $this->log = new DummyLogger();
+        $this->log = Configuration::getLogger();
 
         $this->objectClass = $objectClass;
         $this->_pk = $pk ? $pk : strtolower($objectClass) . '_id';
