@@ -8,7 +8,6 @@ namespace Stackmob;
 use Stackmob\OAuth2Signer;
 use Stackmob\StackmobException;
 use Stackmob\LoginSessionExpiredException;
-use Stackmob\DummyLogger;
 use Stackmob\Configuration;
 
 use OAuth\OAuthConsumer;
@@ -50,16 +49,7 @@ class Rest
         $this->_oauthConsumer = new OAuthConsumer(Configuration::getKey(), Configuration::getSecret(), NULL);
 
         // just to make sure the logging does not fails if used before setUpLog
-        $this->log = new DummyLogger();
-    }
-
-    public function setUpLog($logger)
-    {
-        if (empty($logger)) {
-            return;
-        }
-
-        $this->log = $logger;
+        $this->log = Configuration::getLogger();
         $this->log->debug(__CLASS__ . " - Is Secure: " . $this->_isSecure);
         $this->log->debug(__CLASS__ . " - apiUrl: " . $this->_apiUrl);
     }
