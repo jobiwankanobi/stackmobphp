@@ -84,10 +84,11 @@ class Rest
      *
      * @param $objectClass
      * @param $objectId
+     * @param $depth
      * @return array
      */
-    public function getObject($objectClass,$objectId){
-        $path = $this->objectPath($objectClass,$objectId);
+    public function getObject($objectClass, $objectId, $depth){
+        $path = $this->objectPath($objectClass,$objectId, $depth);
         return $this->get($path);
     }
 
