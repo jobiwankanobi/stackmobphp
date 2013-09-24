@@ -43,6 +43,10 @@ class Configuration
 
     public static function getLogger()
     {
+        if (self::$logger === NULL)
+        {
+            self::$logger = new DummyLogger();
+        }
         return self::$logger;
     }
 
