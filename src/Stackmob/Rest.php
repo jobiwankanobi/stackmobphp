@@ -14,7 +14,7 @@ use OAuth\OAuthConsumer;
 use OAuth\OAuthRequest;
 use OAuth\OAuthSignatureMethodHMACSHA1;
 
-class Rest 
+class Rest
 {
     const API_URL = 'https://api.stackmob.com';
     const USER_AGENT = 'StackmobRest/0.1';
@@ -42,7 +42,7 @@ class Rest
     protected $_isSecure;
     protected $log;
     protected $environment;
-    
+
     public function __construct($apiUrl = null) {
         $this->_apiUrl = $apiUrl ? $apiUrl : Rest::API_URL;
         $this->_isSecure = Rest::startsWith($this->_apiUrl, "https");
@@ -59,8 +59,8 @@ class Rest
         $length = strlen($needle);
         return (substr($haystack, 0, $length) === $needle);
     }
-        
-   
+
+
     // Convenience Methods for Objects, Users, Push Notifications
 
     // Objects /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -74,8 +74,8 @@ class Rest
      * @return array
      */
     public function getObjects($objectClass,$params=array(),$selects=null,$order=null,$range=null,$depth=null){
-        $path = $this->objectPath($objectClass);
-        return $this->get($path,$params,$selects,$order,$range,$depth);
+        $path = $this->objectPath($objectClass, null, $depth);
+        return $this->get($path,$params,$selects,$order,$range);
     }
 
     /**
@@ -106,9 +106,9 @@ class Rest
     }
 
     /**
-     * 
+     *
      * https://developer.stackmob.com/sdks/rest/api#a-post_-_creating_and_appending_related_objects
-     * 
+     *
      * @param type $objectClass
      * @param type $id
      * @param type $relateClass
@@ -121,9 +121,9 @@ class Rest
         return $this->post($path,$data);
     }
     /**
-     * 
+     *
      * https://developer.stackmob.com/sdks/rest/api#a-put_-_appending_values_to_an_array_or_add_an_existing_object_to_a_relationship
-     * 
+     *
      * @param type $objectClass
      * @param type $id
      * @param type $relateClass
@@ -136,7 +136,7 @@ class Rest
         $data = array ($relateClass . '_id' => $relateId);
         return $this->put($path, $data);
     }
-    
+
     /**
      * PUT Object
      * @url https://developer.stackmob.com/sdks/rest/api#a-put_-_update_object
@@ -208,7 +208,7 @@ class Rest
     /**
      * GET Users
      * @url https://developer.stackmob.com/sdks/rest/api#a-get_-_read_objects
-     * 
+     *
      * @param type $params
      * @param type $selects
      * @param type $order
@@ -284,10 +284,10 @@ class Rest
         $path = Rest::LOGIN_PATH;
 
         $data = array('username'=>$username,'password'=>$password);
-        
+
         return $this->loginRequest($path, $data);
     }
-    
+
     public function logout($username) {
         $path = Rest::LOGOUT_PATH;
         $data = array('username' => $username);
@@ -413,8 +413,15 @@ class Rest
         if($range)
             $headers[]=$range;
         $query = http_build_query($data);
-        if($query)
-            $path = "$path?$query";
+        if($query) {
+            // if the path already has a question mark means that we should use an ampersand
+            if (strpos($path, "?") === false) {
+                $path = "$path?$query";
+            }
+            else {
+                $path = "$path&$query";
+            }
+        }
         return $this->request($path,'GET',null,implode("\n", $headers));
     }
 
@@ -455,7 +462,7 @@ class Rest
     }
 
      /**
-     * 
+     *
      * @param type $path
      * @param type $method
      * @param type $postData
@@ -550,8 +557,8 @@ class Rest
 
         return $postData;
     }
-    
-    function send_request($http_method, $url, $auth_header=null, $postData=null, $headers=null) {  
+
+    function send_request($http_method, $url, $auth_header=null, $postData=null, $headers=null) {
         $version = Configuration::getVersion();
         $curl = curl_init($url);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
@@ -647,7 +654,7 @@ class Rest
 
 
     /**
-     * 
+     *
      * @param type $path
      * @param type $method
      * @param type $postData
@@ -669,24 +676,24 @@ class Rest
                 throw new LoginSessionExpiredException();
             }
             // Perform OAuth2 request because logged in
-            
+
             // Get Access Tokens from session
             $accessToken = $_SESSION[Rest::SM_LOGIN_ACCESS_TOKEN];
             $macKey = $_SESSION[Rest::SM_LOGIN_MAC_KEY];
-            
+
             // Initialize OAuth2Signer
             $signer = new OAuth2Signer($accessToken, $macKey);
-            
+
             // Url with port
             $urlWithPort = $this->_isSecure ? $this->_apiUrl . ':443' : $this->_apiUrl;
-            
+
             // Get authorization string to include in request
             $authorizationString = $signer->generateMAC($method, $urlWithPort, $path);
             $this->log->debug("Authorization string: $authorizationString");
-            
+
             // Send request
             $response = $this->send_request(strtoupper($method), $endpoint, $authorizationString, $postData, $headers);
-            
+
         } else {  // OAuth 1 request
             // Setup OAuth request - Use NULL for OAuthToken parameter
             $request = OAuthRequest::from_consumer_and_token($this->_oauthConsumer, NULL, $method, $endpoint, $params);
@@ -732,7 +739,7 @@ class Rest
      * @param null $objectId
      * @return string
      */
-    protected function 
+    protected function
             userPath($username=null){
         $pieces = array(Rest::USER_PATH);
         if($username){

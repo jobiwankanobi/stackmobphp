@@ -48,7 +48,7 @@ class User extends Object {
 
     /**
      * https://developer.stackmob.com/sdks/rest/api#a-post_-_create_object
-     * 
+     *
      * @param $username
      * @param $password
      * @param array $attributes
@@ -61,8 +61,8 @@ class User extends Object {
 
         $user = null;
         $created = Object::$_restClient->createUser($username,$password,$attributes);
-        
-        
+
+
         if(Object::$_restClient->statusCode() == 201){
 
             $user = new User((array)$created);
@@ -126,12 +126,12 @@ class User extends Object {
     /**
      * Logs in a \Stackmob\User, retrieves that user,
      * and puts in session.
-     * 
+     *
      * @param $username
      * @param $password
      * @return boolean
      * @throws \Stackmob\StackmobException
-     * 
+     *
      */
     public function logIn($username = null, $password = null){
         $this->log->debug("Logging in....");
@@ -160,12 +160,12 @@ class User extends Object {
                 $ret = true;
             }
         }
-        
+
         return $ret;
     }
 
     /**
-     * 
+     *
      * @return boolean
      * @throws \Stackmob\StackmobException
      */
@@ -179,8 +179,8 @@ class User extends Object {
         }
         return $ret;
     }
-    
-        
+
+
     /**
      * Calls set("email", $email)
      * @param $email

@@ -22,10 +22,10 @@ class Query extends Object {
     protected $_depth = null;
     protected $_rest = null;
     protected $_range = null;
- 
+
 
     /**
-     * 
+     *
      * @param type $objectClass
      * @param type $pk
      */
@@ -38,20 +38,20 @@ class Query extends Object {
         $this->_rest = new Rest();
 
     }
- 
+
     /**
      * https://developer.stackmob.com/sdks/rest/api#a-equality_query
-     * 
+     *
      * @param type $key
      * @param type $value
      */
     public function isEqual($key, $value) {
             $this->_where[$key] = $value;
     }
-	
+
     /**
      * https://developer.stackmob.com/sdks/rest/api#a-inequality_queries____________________null_
-     * 
+     *
      * @param type $key
      * @param type $value
      */
@@ -61,27 +61,27 @@ class Query extends Object {
 
     /**
      * https://developer.stackmob.com/sdks/rest/api#a-inequality_queries____________________null_
-     * 
+     *
      * @param type $key
      * @param type $value
      */
-    public function greaterThan($key, $value) { 
+    public function greaterThan($key, $value) {
             $this->setWhereKeyHashValue($key, 'gt', $value);
     }
 
     /**
      * https://developer.stackmob.com/sdks/rest/api#a-inequality_queries____________________null_
-     * 
+     *
      * @param type $key
      * @param type $value
      */
-    public function lessThan($key, $value) { 
+    public function lessThan($key, $value) {
             $this->setWhereKeyHashValue($key, 'lt', $value);
     }
 
     /**
      * https://developer.stackmob.com/sdks/rest/api#a-equality_query
-     * 
+     *
      * @param type $key
      */
     public function notNull($key) {
@@ -90,7 +90,7 @@ class Query extends Object {
 
     /**
      * https://developer.stackmob.com/sdks/rest/api#a-equality_query
-     * 
+     *
      * @param type $key
      */
     public function isNull($key) {
@@ -100,7 +100,7 @@ class Query extends Object {
     /**
      * https://developer.stackmob.com/sdks/rest/api#a-querying_for_multiple_values
      * https://developer.stackmob.com/sdks/rest/api#a-querying_arrays
-     * 
+     *
      * @param type $key
      * @param type $values
      */
@@ -110,7 +110,7 @@ class Query extends Object {
 
     /**
      * https://developer.stackmob.com/sdks/rest/api#a-get_-_expanding_relationships:_get_full_objects__not_just_ids
-     * 
+     *
      * @param type $value
      */
     public function depth($value) {
@@ -119,7 +119,7 @@ class Query extends Object {
 
     /**
      * https://developer.stackmob.com/sdks/rest/api#a-selecting_fields_to_return
-     * 
+     *
      * @param type $values
      */
     public function select($values=array()) {
@@ -128,7 +128,7 @@ class Query extends Object {
 
     /**
      * https://developer.stackmob.com/sdks/rest/api#a-order_by
-     * 
+     *
      * @param type $values
      */
     public function asc($values=array()) {
@@ -137,18 +137,18 @@ class Query extends Object {
 
     /**
      * https://developer.stackmob.com/sdks/rest/api#a-order_by
-     * 
+     *
      * @param type $values
      */
     public function desc($values=array()) {
             $this->_orderby['desc'] = $values;
     }
-	
+
     /**
      * Pagination
-     * 
+     *
      * https://developer.stackmob.com/sdks/rest/api#a-pagination
-     * 
+     *
      * @param type $low
      * @param type $high
      * @return boolean
@@ -159,32 +159,28 @@ class Query extends Object {
         } else {
             return false;
         }
-        
+
         return true;
     }
-	
+
     /**
      * Limit
-     * 
+     *
      * https://developer.stackmob.com/sdks/rest/api#a-pagination
-     * 
+     *
      * @param type $max
      */
     public function limit($max) {
         return $this->range(0, $max);
     }
-    
-    
+
+
     /**
      * Retrieves a list of Stackmob Objects that satisfy this query.
      *
      * @return array
      */
     public function find(){
-
-        if($this->_depth) {
-            $this->_where[] = array("_expand" => $this->_depth);
-        }
 
         $params = $this->_where;
         $selects = $this->preparedSelects();
@@ -234,7 +230,7 @@ class Query extends Object {
     }
 
     /**
-     * 
+     *
      * @return string
      */
     protected function preparedOrderBy() {
@@ -247,15 +243,15 @@ class Query extends Object {
             foreach($this->_orderBy['desc'] as $item) {
                 $order[] = "$item:desc";
             }
-            
+
             $order = "X-StackMob-OrderBy:" . implode(',',$order);
         }
-        
+
         return $order;
     }
-    
+
     /**
-     * 
+     *
      * @return string
      */
     protected function preparedSelects() {
