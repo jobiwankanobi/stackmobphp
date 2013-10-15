@@ -9,7 +9,19 @@ namespace Stackmob;
 
 class DummyLogger
 {
-    public function debug()
+    public function info($msg, $other = null)
+    {
+    }
+    public function critical($msg, $other = null)
+    {
+    }
+    public function warn($msg, $other = null)
+    {
+    }
+    public function error($msg, $other = null)
+    {
+    }
+    public function debug($msg, $other = null)
     {
     }
 }
