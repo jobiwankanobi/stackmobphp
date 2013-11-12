@@ -98,6 +98,26 @@ class Query extends Object {
     }
 
     /**
+     * https://developer.stackmob.com/rest-api/api-docs#a-querying_for_empty_values
+     *
+     * @param type $key
+     */
+    public function isEmpty($key)
+    {
+            $this->setWhereKeyHashValue($key, 'empty', 'true');
+    }
+
+    /**
+     * https://developer.stackmob.com/rest-api/api-docs#a-querying_for_empty_values
+     *
+     * @param type $key
+     */
+    public function notEmpty($key)
+    {
+            $this->setWhereKeyHashValue($key, 'empty', 'false');
+    }
+
+    /**
      * https://developer.stackmob.com/sdks/rest/api#a-querying_for_multiple_values
      * https://developer.stackmob.com/sdks/rest/api#a-querying_arrays
      *
