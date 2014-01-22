@@ -18,7 +18,7 @@ class Query extends Object {
     protected $_pk = null;
     protected $_where = array();
     protected $_select = array();
-    protected $_orderby = array();
+    protected $_orderBy = array('asc' => array(), 'desc' => array());
     protected $_depth = null;
     protected $_rest = null;
     protected $_range = null;
@@ -152,7 +152,7 @@ class Query extends Object {
      * @param type $values
      */
     public function asc($values=array()) {
-            $this->_orderby['asc'] = $values;
+            $this->_orderBy['asc'] = $values;
     }
 
     /**
@@ -161,7 +161,7 @@ class Query extends Object {
      * @param type $values
      */
     public function desc($values=array()) {
-            $this->_orderby['desc'] = $values;
+            $this->_orderBy['desc'] = $values;
     }
 
     /**
