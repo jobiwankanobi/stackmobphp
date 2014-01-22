@@ -8,6 +8,10 @@
 
 namespace Stackmob;
 
+use Stackmob\Rest;
+use Stackmob\Object;
+use Stackmob\Configuration;
+
 class Object {
     //put your code here
     
@@ -41,9 +45,6 @@ class Object {
             $obj->save();
         }
     }
-    protected function setUpLog() {
-        $this->log = \Logger::getLogger(__CLASS__);
-    }
 
     /**
      * Constructor
@@ -54,17 +55,19 @@ class Object {
      * @param $pk
      */
     public function __construct($objectClass,$attributes=array(), $pk=null){
-        $this->setUpLog();
+
+        // just to make sure the logging does not fails if used before setUpLog
+        $this->log = Configuration::getLogger();
 
         $this->objectClass = $objectClass;
         $this->_pk = $pk ? $pk : strtolower($objectClass) . '_id';
         $this->attributes($attributes);
 
         // TODO: Fix the use of many rest clients
-        $this->_rest = new \Stackmob\Rest();
+        $this->_rest = new Rest();
 
         if(!Object::$_restClient){
-            Object::$_restClient = new \Stackmob\Rest();
+            Object::$_restClient = new Rest();
         }
 
         $this->initialize();

@@ -8,45 +8,50 @@
 
 namespace Stackmob;
 
+use Stackmob\Configuration;
+use Stackmob\User;
+use Stackmob\Rest;
+use Stackmob\Object;
+
 class Query extends Object {
 
     protected $_pk = null;
     protected $_where = array();
     protected $_select = array();
-    protected $_orderby = array();
+    protected $_orderBy = array('asc' => array(), 'desc' => array());
     protected $_depth = null;
     protected $_rest = null;
     protected $_range = null;
- 
+
 
     /**
-     * 
+     *
      * @param type $objectClass
      * @param type $pk
      */
     public function __construct($objectClass, $pk = null){
-        $this->log = \Logger::getLogger(__CLASS__);
+        $this->log = Configuration::getLogger();
 
         $this->objectClass = $objectClass;
         $this->_pk = $pk ? $pk : strtolower($objectClass) . '_id';
 
-        $this->_rest = new \Stackmob\Rest();
+        $this->_rest = new Rest();
 
     }
- 
+
     /**
      * https://developer.stackmob.com/sdks/rest/api#a-equality_query
-     * 
+     *
      * @param type $key
      * @param type $value
      */
     public function isEqual($key, $value) {
             $this->_where[$key] = $value;
     }
-	
+
     /**
      * https://developer.stackmob.com/sdks/rest/api#a-inequality_queries____________________null_
-     * 
+     *
      * @param type $key
      * @param type $value
      */
@@ -56,27 +61,27 @@ class Query extends Object {
 
     /**
      * https://developer.stackmob.com/sdks/rest/api#a-inequality_queries____________________null_
-     * 
+     *
      * @param type $key
      * @param type $value
      */
-    public function greaterThan($key, $value) { 
+    public function greaterThan($key, $value) {
             $this->setWhereKeyHashValue($key, 'gt', $value);
     }
 
     /**
      * https://developer.stackmob.com/sdks/rest/api#a-inequality_queries____________________null_
-     * 
+     *
      * @param type $key
      * @param type $value
      */
-    public function lessThan($key, $value) { 
+    public function lessThan($key, $value) {
             $this->setWhereKeyHashValue($key, 'lt', $value);
     }
 
     /**
      * https://developer.stackmob.com/sdks/rest/api#a-equality_query
-     * 
+     *
      * @param type $key
      */
     public function notNull($key) {
@@ -85,7 +90,7 @@ class Query extends Object {
 
     /**
      * https://developer.stackmob.com/sdks/rest/api#a-equality_query
-     * 
+     *
      * @param type $key
      */
     public function isNull($key) {
@@ -93,9 +98,29 @@ class Query extends Object {
     }
 
     /**
+     * https://developer.stackmob.com/rest-api/api-docs#a-querying_for_empty_values
+     *
+     * @param type $key
+     */
+    public function isEmpty($key)
+    {
+            $this->setWhereKeyHashValue($key, 'empty', 'true');
+    }
+
+    /**
+     * https://developer.stackmob.com/rest-api/api-docs#a-querying_for_empty_values
+     *
+     * @param type $key
+     */
+    public function notEmpty($key)
+    {
+            $this->setWhereKeyHashValue($key, 'empty', 'false');
+    }
+
+    /**
      * https://developer.stackmob.com/sdks/rest/api#a-querying_for_multiple_values
      * https://developer.stackmob.com/sdks/rest/api#a-querying_arrays
-     * 
+     *
      * @param type $key
      * @param type $values
      */
@@ -105,7 +130,7 @@ class Query extends Object {
 
     /**
      * https://developer.stackmob.com/sdks/rest/api#a-get_-_expanding_relationships:_get_full_objects__not_just_ids
-     * 
+     *
      * @param type $value
      */
     public function depth($value) {
@@ -114,7 +139,7 @@ class Query extends Object {
 
     /**
      * https://developer.stackmob.com/sdks/rest/api#a-selecting_fields_to_return
-     * 
+     *
      * @param type $values
      */
     public function select($values=array()) {
@@ -123,27 +148,27 @@ class Query extends Object {
 
     /**
      * https://developer.stackmob.com/sdks/rest/api#a-order_by
-     * 
+     *
      * @param type $values
      */
     public function asc($values=array()) {
-            $this->_orderby['asc'] = $values;
+            $this->_orderBy['asc'] = $values;
     }
 
     /**
      * https://developer.stackmob.com/sdks/rest/api#a-order_by
-     * 
+     *
      * @param type $values
      */
     public function desc($values=array()) {
-            $this->_orderby['desc'] = $values;
+            $this->_orderBy['desc'] = $values;
     }
-	
+
     /**
      * Pagination
-     * 
+     *
      * https://developer.stackmob.com/sdks/rest/api#a-pagination
-     * 
+     *
      * @param type $low
      * @param type $high
      * @return boolean
@@ -154,32 +179,28 @@ class Query extends Object {
         } else {
             return false;
         }
-        
+
         return true;
     }
-	
+
     /**
      * Limit
-     * 
+     *
      * https://developer.stackmob.com/sdks/rest/api#a-pagination
-     * 
+     *
      * @param type $max
      */
     public function limit($max) {
         return $this->range(0, $max);
     }
-    
-    
+
+
     /**
      * Retrieves a list of Stackmob Objects that satisfy this query.
      *
      * @return array
      */
     public function find(){
-
-        if($this->_depth) {
-            $this->_where[] = array("_expand" => $this->_depth);
-        }
 
         $params = $this->_where;
         $selects = $this->preparedSelects();
@@ -193,8 +214,12 @@ class Query extends Object {
         if($this->_rest->statusCode() == 200){
             $this->_count = $this->_rest->count();
             $indexKey = $this->indexKey;
-            if(!is_array($found))
-                return array();
+
+            // if the result is a single object (for example, in the case of listapi
+            // query), it's converted to an array before being processed
+            if(!is_array($found)) {
+                $found = array($found);
+            }
             foreach($found as $attributes){
                 if($indexKey){
                     $index = isset($attributes->$indexKey) ? $attributes->$indexKey : count($objects);
@@ -203,9 +228,9 @@ class Query extends Object {
                 }
 
                 if($this->objectClass == Object::USER_OBJECT_CLASS){
-                    $objects[$index] = new \Stackmob\User($attributes);
+                    $objects[$index] = new User($attributes);
                 }else{
-                    $objects[$index] = new \Stackmob\Object($this->objectClass,$attributes);
+                    $objects[$index] = new Object($this->objectClass,$attributes);
                 }
             }
         }
@@ -225,7 +250,7 @@ class Query extends Object {
     }
 
     /**
-     * 
+     *
      * @return string
      */
     protected function preparedOrderBy() {
@@ -238,15 +263,15 @@ class Query extends Object {
             foreach($this->_orderBy['desc'] as $item) {
                 $order[] = "$item:desc";
             }
-            
+
             $order = "X-StackMob-OrderBy:" . implode(',',$order);
         }
-        
+
         return $order;
     }
-    
+
     /**
-     * 
+     *
      * @return string
      */
     protected function preparedSelects() {

@@ -2,7 +2,9 @@
 /**
  * Push
  */
-namespace Sparse;
+namespace Stackmob;
+
+use Stackmob\Rest;
 
 class Push {
 
@@ -13,32 +15,24 @@ class Push {
 
     /**
      * @param $data - The data of the push notification. Valid fields are:
-     * channels - An Array of channels to push to.
-     * push_time - A Date object for when to send the push.
-     * expiration_time - A Date object for when to expire the push.
-     * expiration_interval - The seconds from now to expire the push.
-     * where - A Parse.Query over Parse.Installation that is used to match a set of installations to push to.
-     * data - The data to send as part of the push
+     *  - alert : the message to display
+     *  - badge : an iOS-specific value that changes the badge of the application icon (number or "Increment")
+     *  - sound : an iOS-specific string representing the name of a sound file in the application bundle to play.
      * @return array|null
      */
-    public static function send($data){
+    public static function send($data, $users = array()){
 
         if(!Push::$_restClient){
-            Push::$_restClient = new \Sparse\Rest();
+            Push::$_restClient = new Rest();
         }
 
-        // Rest API is a little easier
-        if(!empty($data['channels']) && !empty($data['data'])){
-
-            $params = $data;
-            $data = $params['data'];
-            unset($params['data']);
-            $channels = $params['channels'];
-            unset($params['channels']);
-
-            return Push::$_restClient->push($channels,$data,$params);
-        }
-
-        return null;
+        return Push::$_restClient->push($data, $users);
     }
+
+    /**
+     * Initialize is an empty function by default. Override it with your own initialization logic.
+     */
+    public function initialize(){
+        // empty
+    }    
 }

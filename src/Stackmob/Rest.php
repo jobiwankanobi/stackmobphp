@@ -4,17 +4,18 @@
  * @version 0.1
  */
 namespace Stackmob;
-include_once("Stackmob.php");
-include_once("OAuth.php");
-include_once("OAuth2Signer.php");
 
-class Rest {
+use Stackmob\OAuth2Signer;
+use Stackmob\StackmobException;
+use Stackmob\LoginSessionExpiredException;
+use Stackmob\Configuration;
 
-    public static $consumerKey;
-    public static $consumerSecret;
-    public static $DEVELOPMENT = true; 	// default development, false is production
-    private static $oldConsumerKey;
-    private static $oldConsumerSecret;
+use OAuth\OAuthConsumer;
+use OAuth\OAuthRequest;
+use OAuth\OAuthSignatureMethodHMACSHA1;
+
+class Rest
+{
     const API_URL = 'https://api.stackmob.com';
     const USER_AGENT = 'StackmobRest/0.1';
     const OBJECT_PATH_PREFIX = '';
@@ -40,24 +41,26 @@ class Rest {
     protected $_apiUrl;
     protected $_isSecure;
     protected $log;
-    
+    protected $environment;
+
     public function __construct($apiUrl = null) {
-                $this->_apiUrl = $apiUrl ? $apiUrl : Rest::API_URL;
-                $this->_isSecure = Rest::startsWith($this->_apiUrl, "https");
-		$this->_oauthConsumer = new OAuthConsumer(Rest::$consumerKey, Rest::$consumerSecret, NULL);
-                $this->log = \Logger::getLogger(__CLASS__);
-                $this->log->debug("Is Secure: " . $this->_isSecure);
-                $this->log->debug("apiUrl: " . $this->_apiUrl);
+        $this->_apiUrl = $apiUrl ? $apiUrl : Rest::API_URL;
+        $this->_isSecure = Rest::startsWith($this->_apiUrl, "https");
+        $this->_oauthConsumer = new OAuthConsumer(Configuration::getKey(), Configuration::getSecret(), NULL);
+
+        // just to make sure the logging does not fails if used before setUpLog
+        $this->log = Configuration::getLogger();
+        $this->log->debug(__CLASS__ . " - Is Secure: " . $this->_isSecure);
+        $this->log->debug(__CLASS__ . " - apiUrl: " . $this->_apiUrl);
     }
-        
-    
+
     public static function startsWith($haystack, $needle)
     {
         $length = strlen($needle);
         return (substr($haystack, 0, $length) === $needle);
     }
-        
-   
+
+
     // Convenience Methods for Objects, Users, Push Notifications
 
     // Objects /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -71,8 +74,8 @@ class Rest {
      * @return array
      */
     public function getObjects($objectClass,$params=array(),$selects=null,$order=null,$range=null,$depth=null){
-        $path = $this->objectPath($objectClass);
-        return $this->get($path,$params,$selects,$order,$range,$depth);
+        $path = $this->objectPath($objectClass, null, $depth);
+        return $this->get($path,$params,$selects,$order,$range);
     }
 
     /**
@@ -81,10 +84,11 @@ class Rest {
      *
      * @param $objectClass
      * @param $objectId
+     * @param $depth
      * @return array
      */
-    public function getObject($objectClass,$objectId){
-        $path = $this->objectPath($objectClass,$objectId);
+    public function getObject($objectClass, $objectId, $depth){
+        $path = $this->objectPath($objectClass,$objectId, $depth);
         return $this->get($path);
     }
 
@@ -102,9 +106,9 @@ class Rest {
     }
 
     /**
-     * 
+     *
      * https://developer.stackmob.com/sdks/rest/api#a-post_-_creating_and_appending_related_objects
-     * 
+     *
      * @param type $objectClass
      * @param type $id
      * @param type $relateClass
@@ -117,9 +121,9 @@ class Rest {
         return $this->post($path,$data);
     }
     /**
-     * 
+     *
      * https://developer.stackmob.com/sdks/rest/api#a-put_-_appending_values_to_an_array_or_add_an_existing_object_to_a_relationship
-     * 
+     *
      * @param type $objectClass
      * @param type $id
      * @param type $relateClass
@@ -132,7 +136,7 @@ class Rest {
         $data = array ($relateClass . '_id' => $relateId);
         return $this->put($path, $data);
     }
-    
+
     /**
      * PUT Object
      * @url https://developer.stackmob.com/sdks/rest/api#a-put_-_update_object
@@ -185,12 +189,16 @@ class Rest {
      *
      * @return array
      */
-    public function push($channels,$data,$params=array()){
+    public function push($payload,$users=array()){
 
-        $path = Rest::PUSH_PATH;
+        $this->_apiUrl = Rest::PUSH_PATH;
+        $path = 'notifications';
 
-        $params['channels'] = $channels;
-        $params['data'] = $data;
+        $params['payload'] = $payload;
+        if (!empty($users))
+        {
+            $params['users'] = $users;
+        }
 
         return $this->post($path,$params);
     }
@@ -200,7 +208,7 @@ class Rest {
     /**
      * GET Users
      * @url https://developer.stackmob.com/sdks/rest/api#a-get_-_read_objects
-     * 
+     *
      * @param type $params
      * @param type $selects
      * @param type $order
@@ -276,10 +284,10 @@ class Rest {
         $path = Rest::LOGIN_PATH;
 
         $data = array('username'=>$username,'password'=>$password);
-        
+
         return $this->loginRequest($path, $data);
     }
-    
+
     public function logout($username) {
         $path = Rest::LOGOUT_PATH;
         $data = array('username' => $username);
@@ -405,8 +413,15 @@ class Rest {
         if($range)
             $headers[]=$range;
         $query = http_build_query($data);
-        if($query)
-            $path = "$path?$query";
+        if($query) {
+            // if the path already has a question mark means that we should use an ampersand
+            if (strpos($path, "?") === false) {
+                $path = "$path?$query";
+            }
+            else {
+                $path = "$path&$query";
+            }
+        }
         return $this->request($path,'GET',null,implode("\n", $headers));
     }
 
@@ -441,9 +456,13 @@ class Rest {
         return $dump;
     }
 
+    protected function isProductionEnvironment()
+    {
+        return ($this->environment === 'prod');
+    }
 
      /**
-     * 
+     *
      * @param type $path
      * @param type $method
      * @param type $postData
@@ -451,7 +470,7 @@ class Rest {
      * @return type
      */
     protected function loginRequest($path,$postData=array(),$headers=null){
-        $version = Rest::$DEVELOPMENT ? 0 : 1;
+        $version = Configuration::getVersion();
         $postData['token_type'] = 'mac';    // So that it returns the right thing
         $endpoint = $this->_apiUrl.'/'.$path;
         $this->log->debug( "endpoint: " . $endpoint . "");
@@ -459,13 +478,13 @@ class Rest {
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_FAILONERROR, true);
         // Don't verify peer in developer mode
-        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, !Rest::$DEVELOPMENT);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, $this->isProductionEnvironment());
         curl_setopt($curl, CURLOPT_HEADER, true);
         curl_setopt($curl, CURLOPT_HTTPHEADER, array(
                 'Content-Type: application/x-www-form-urlencoded;',
                         'Content-Length: '.strlen(http_build_query($postData)),
                         "Accept: application/vnd.stackmob+json; version=$version",
-                        "X-StackMob-API-Key: " . Rest::$consumerKey,
+                        "X-StackMob-API-Key: " . Configuration::getKey(),
                         "X-Stackmob-User-Agent: stackmobphp 0.1"));
         curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'POST');
         curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($postData));
@@ -520,22 +539,53 @@ class Rest {
         else
             return false;
     }
-    
-    function send_request($http_method, $url, $auth_header=null, $postData=null, $headers=null) {  
-        $version = Rest::$DEVELOPMENT ? 0 : 1;
+
+    function processPostData($postData)
+    {
+        if (is_array($postData))
+        {
+            foreach ($postData as $key => $value)
+            {
+                if (is_array($value) && isset($value['binary']))
+                {
+                    $content_type = empty($value['content-type']) ? 'text/html' : $value['content-type'];
+                    $filename = empty($value['filename']) ? 'file.html' : $value['filename'];
+                    $postData[$key] = "Content-Type: {$content_type}\nContent-Disposition: attachment; filename={$filename}\nContent-Transfer-Encoding: base64\n\n".base64_encode($value['binary']);
+                }
+            }
+        }
+
+        return $postData;
+    }
+
+    function send_request($http_method, $url, $auth_header=null, $postData=null, $headers=null) {
+        $version = Configuration::getVersion();
         $curl = curl_init($url);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($curl, CURLOPT_FAILONERROR, true);
+        // curl_setopt($curl, CURLOPT_FAILONERROR, true);
         // Don't verify peer in developer mode
-        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, !Rest::$DEVELOPMENT);
-        curl_setopt($curl, CURLOPT_HEADER, true);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, $this->isProductionEnvironment());
+        curl_setopt($curl, CURLOPT_HEADER, false);
+
+        if (is_array($postData))
+        {
+            $this->log->debug("Request Body: ".json_encode(array_map(function($value){
+                if (is_array($value) && isset($value['binary']))
+                {
+                    return '[binary]';
+                }
+                return $value;
+            }, $postData)));
+        }
+
+        $postData = $this->processPostData($postData);
 
         switch($http_method) {
           case 'GET':
             curl_setopt($curl, CURLOPT_HTTPHEADER, array("Content-Type: application/vnd.stackmob+json;",
                                       'Content-Length: 0',
                                       "Accept: application/vnd.stackmob+json; version=$version",
-                                      "X-StackMob-API-Key: " . Rest::$consumerKey,
+                                      "X-StackMob-API-Key: " . Configuration::getKey(),
                                       "X-Stackmob-User-Agent: stackmobphp 0.1",
                                       $headers,
                                       $auth_header));
@@ -545,7 +595,7 @@ class Rest {
                                       'Content-Type: application/json',
                                       'Content-Length: '.strlen(json_encode($postData)),
                                       "Accept: application/vnd.stackmob+json; version=$version",
-                                      "X-StackMob-API-Key: " . Rest::$consumerKey,
+                                      "X-StackMob-API-Key: " . Configuration::getKey(),
                                       "X-Stackmob-User-Agent: stackmobphp 0.1",
                                       $headers,
                                       $auth_header));
@@ -557,7 +607,7 @@ class Rest {
                                       'Content-Type: application/json',
                                       'Content-Length: '.strlen(json_encode($postData)),
                                       "Accept: application/vnd.stackmob+json; version=$version",
-                                      "X-StackMob-API-Key: " . Rest::$consumerKey,
+                                      "X-StackMob-API-Key: " . Configuration::getKey(),
                                       "X-Stackmob-User-Agent: stackmobphp 0.1",
                                       $headers,
                                       $auth_header));
@@ -569,49 +619,42 @@ class Rest {
                                       "Content-Type: application/json",
                                       'Content-Length: 0',
                                       "Accept: application/vnd.stackmob+json; version=$version",
-                                      "X-StackMob-API-Key: " . Rest::$consumerKey,
+                                      "X-StackMob-API-Key: " . Configuration::getKey(),
                                       "X-Stackmob-User-Agent: stackmobphp 0.1",
                                                                   $headers, $auth_header));
                               curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $http_method);
             break;
         }
 
-        $this->log->debug( $curl."\n\n");
-
         $response = curl_exec($curl);
-        $statusCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $err = curl_errno ( $curl );
+        $errmsg = curl_error ( $curl );
+        $header = curl_getinfo ( $curl );
+        $statusCode = curl_getinfo ( $curl, CURLINFO_HTTP_CODE );
+        curl_close($curl);
+
         $this->log->debug("Response: $response");
         $this->log->debug("Status code: $statusCode");
-        if (!$response && $statusCode !== 200) {
-             $response = curl_error($curl);
-             curl_close($curl);
-
-             throw new StackmobException($response, $statusCode);
+        if ($statusCode >= 400 && $statusCode !== 0) {
+            $this->log->debug("Errorno: $err");
+            throw new StackmobException($response, $statusCode);
         } else {
-
-            list($header, $body) = explode("\r\n\r\n", $response, 2);
-            $this->log->debug("Header: $header");
-            $this->log->debug("Body: $body");
-            $this->_responseHeaders = $this->http_parse_headers($header);
-
             $this->_statusCode = $statusCode;
-            $this->_response = $body;
+            $this->_response = $response;
             $this->_results = null;
 
-            $decoded = json_decode($body);
+            $decoded = json_decode($response);
 
             if(is_object($decoded) || is_array($decoded) ){
                 $this->_results = $decoded;
             }
-            curl_close($curl);
-
             return $this->_results;
         }
     }
 
 
     /**
-     * 
+     *
      * @param type $path
      * @param type $method
      * @param type $postData
@@ -633,30 +676,30 @@ class Rest {
                 throw new LoginSessionExpiredException();
             }
             // Perform OAuth2 request because logged in
-            
+
             // Get Access Tokens from session
             $accessToken = $_SESSION[Rest::SM_LOGIN_ACCESS_TOKEN];
             $macKey = $_SESSION[Rest::SM_LOGIN_MAC_KEY];
-            
+
             // Initialize OAuth2Signer
             $signer = new OAuth2Signer($accessToken, $macKey);
-            
+
             // Url with port
             $urlWithPort = $this->_isSecure ? $this->_apiUrl . ':443' : $this->_apiUrl;
-            
+
             // Get authorization string to include in request
             $authorizationString = $signer->generateMAC($method, $urlWithPort, $path);
             $this->log->debug("Authorization string: $authorizationString");
-            
+
             // Send request
             $response = $this->send_request(strtoupper($method), $endpoint, $authorizationString, $postData, $headers);
-            
+
         } else {  // OAuth 1 request
             // Setup OAuth request - Use NULL for OAuthToken parameter
             $request = OAuthRequest::from_consumer_and_token($this->_oauthConsumer, NULL, $method, $endpoint, $params);
 
             // Sign the constructed OAuth request using HMAC-SHA1 - Use NULL for OAuthToken parameter
-            $request->sign_request(new OAuthSignatureMethod_HMAC_SHA1(), $this->_oauthConsumer, NULL);
+            $request->sign_request(new OAuthSignatureMethodHMACSHA1(), $this->_oauthConsumer, NULL);
 
             // Extract OAuth header from OAuth request object and keep it handy in a variable
             $oauth_header = $request->to_header();
@@ -696,7 +739,7 @@ class Rest {
      * @param null $objectId
      * @return string
      */
-    protected function 
+    protected function
             userPath($username=null){
         $pieces = array(Rest::USER_PATH);
         if($username){
@@ -729,103 +772,3 @@ class Rest {
     }
 }
 
-
-
-//        $this->log->debug("Request url: $url");
-//        if($http_method === 'GET' || $http_method === 'DELETE')
-//            $contentLength = 0;
-//        else
-//            $contentLength = strlen(json_encode($postData));
-//        $rest = new \RestClient(array(
-//            'user_agent' => 'stackmobphp 0.1',
-//            'headers' => array(
-//                'Content-Type' => 'application/vnd.stackmob+json',
-//                'Content-Length' => $contentLength,
-//                'Accept' => "application/vnd.stackmob+json; version=$version",
-//                'X-StackMob-API-Key' => Rest::$consumerKey,
-//                'X-StackMob-User-Agent' => 'stackmobphp 0.1'
-//            ),
-//            'curl_options' => array (
-//                CURLOPT_SSL_VERIFYPEER => !Rest::$DEVELOPMENT,
-//                CURLOPT_RETURNTRANSFER => true,
-//                CURLOPT_FAILONERROR => true
-//            ),
-//            'format' => "json"));
-//        switch($http_method) {
-//            case 'GET':
-//                $result = $rest->get($url,null,$headers);
-//                break;
-//            case 'POST':
-//                $result = $rest->post($url,$postData,$headers);
-//                break;
-//            case 'PUT':
-//                $result = $rest->put($url,$postData,$headers);
-//                break;
-//            case 'DELETE':
-//                $result = $rest->delete($url,null,$headers);
-//                break;
-//        }
-//        $statusCode = $result->info->http_code;
-//        $error = $result->error;
-//        if(!$result->response && $statusCode != 200) {
-//            throw new StackmobException($error, $statusCode);
-//        }
-//        $decoded = json_decode($result->response);
-//        if(is_object($decoded)){
-//            $this->_results = $decoded;
-//        }
-//        return $this->_results;
-
-
-//    /**
-//     * @param $path
-//     * @param array $postData
-//     * @param null $headers
-//     * @return mixed
-//     * @throws StackmobException
-//     */
-//    protected function loginRequest($path,$postData=array(),$headers=null) {
-//        $postData['token_type'] = 'mac';
-////        $endpoint = $this->_apiUrl.'/'.$path;
-//        $version = Rest::$DEVELOPMENT ? 0 : 1;
-//
-//        $rest = new \RestClient(array(
-//            'base_url' => $this->_apiUrl,
-//            'user_agent' => 'stackmobphp 0.1',
-//            'headers' => array(
-//                'Content-Type' => 'application/x-www-form-urlencoded',
-//                'Content-Length' => strlen(http_build_query($postData)),
-//                'Accept' => "application/vnd.stackmob+json; version=$version",
-//                'X-StackMob-API-Key' => Rest::$consumerKey,
-//                'X-StackMob-User-Agent' => 'stackmobphp 0.1'
-//            ),
-//            'curl_options' => array (
-//                CURLOPT_SSL_VERIFYPEER => !Rest::$DEVELOPMENT,
-//                CURLOPT_RETURNTRANSFER => true,
-//                CURLOPT_FAILONERROR => true
-//            ),
-//            'format' => ""));
-//        $result = $rest->post($path, $postData, $headers);
-//        $statusCode = $result->info->http_code;
-//        $error = $result->error;
-//        if(!$result->response && $statusCode != 200) {
-//            throw new StackmobException($error, $statusCode);
-//        }
-//        $decoded = json_decode($result->response);
-//
-//        if(is_object($decoded)){
-//            $this->log->debug(print_r($decoded, true));
-//            session_start();
-//            $_SESSION[Rest::SM_LOGIN_ACCESS_TOKEN] = $decoded->access_token;
-//            if(isset($decoded->mac_key))
-//                $_SESSION[Rest::SM_LOGIN_MAC_KEY] = $decoded->mac_key;
-//            $_SESSION[Rest::SM_LOGIN_TOKEN_EXPIRES] = time() + $decoded->expires_in;
-//            $_SESSION[Rest::SM_LOGIN_REFRESH_TOKEN] = $decoded->refresh_token;
-//            $_SESSION[User::SM_LOGGED_IN_USER] = json_encode($decoded->stackmob->user);
-//            $_SESSION[User::SM_LOGGED_IN_USERNAME] = $decoded->stackmob->user->username;
-//        } else {
-//            throw new StackmobException("Unable to decode json response: " . $result->response);
-//        }
-//
-//        return $decoded->stackmob->user;
-//    }
